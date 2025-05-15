@@ -27,7 +27,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "next build"
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@vercel/analytics": "^1.0.1",
