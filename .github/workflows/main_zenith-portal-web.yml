@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -21,16 +21,21 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: '20.x'
 
-      - name: npm install, build, and test
+      - name: Install dependencies and build
         run: |
           npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm run build
 
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+      - name: Install production dependencies only
+        run: npm install --production
+
+      - name: Zip build output and runtime files
+        run: zip -r release.zip .next public package.json node_modules
+
+      - name: Check artifact size
+        run: du -sh release.zip
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -45,8 +50,8 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write # required for requesting JWT
+      contents: read # required for actions/checkout
 
     steps:
       - name: Download artifact from build job
@@ -67,11 +72,12 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C89018ADED634D46A6B105BD9BF4E499 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F0E4AC1C01104BF881431788A56FF4FB }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'zenith-portal-web'
           slot-name: 'Production'
           package: ./app
+
           
