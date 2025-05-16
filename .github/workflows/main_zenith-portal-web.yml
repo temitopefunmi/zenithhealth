@@ -33,7 +33,7 @@ jobs:
 
       - name: Zip build output and runtime files
         run: |
-          zip -r release.zip .next public package.json node_modules next.config.js package-lock.json startup.sh
+          zip -r release.zip .next public package.json next.config.js package-lock.json startup.sh
 
       - name: Check if it exists
         run: ls node_modules/.bin/next
