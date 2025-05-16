@@ -33,10 +33,7 @@ jobs:
 
       - name: Zip build output and runtime files
         run: |
-          zip -r release.zip .next public package.json next.config.js package-lock.json startup.sh
-
-      - name: Check if it exists
-        run: ls node_modules/.bin/next
+          zip -r release.zip .next/standalone .next/static public package.json next.config.js package-lock.json startup.sh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
