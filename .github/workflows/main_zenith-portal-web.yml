@@ -32,10 +32,11 @@ jobs:
         run: npm install --production
 
       - name: Zip build output and runtime files
-        run: zip -r release.zip .next public package.json node_modules
+        run: |
+          zip -r release.zip .next public package.json node_modules next.config.js package-lock.json
 
-      - name: Check artifact size
-        run: du -sh release.zip
+      - name: Check if it exists
+        run: ls node_modules/.bin/next
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
