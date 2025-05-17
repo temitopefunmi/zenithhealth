@@ -34,6 +34,8 @@ jobs:
       - name: Copy static assets to root (for Azure static file serving)
         run: cp -r .next/static ./static
 
+      - name: Copy the updated server.js to the standalone folder
+        run: cp server.js .next/standalone/server.js
 
       - name: Copy public folder into standalone
         run: cp -r public .next/standalone
