@@ -31,9 +31,15 @@ jobs:
       - name: Install production dependencies only
         run: npm install --production
 
+      - name: Copy static assets into standalone folder
+        run: cp -r .next/static .next/standalone/
+
+      - name: Copy public folder into standalone
+        run: cp -r public .next/standalone
+
       - name: Zip build output and runtime files
         run: |
-          zip -r release.zip .next/standalone .next/static public package.json next.config.js package-lock.json startup.sh
+          zip -r release.zip .next/standalone .next/static package.json next.config.js package-lock.json startup.sh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
