@@ -37,7 +37,7 @@ jobs:
       - name: Copy public folder into standalone
         run: cp -r public .next/standalone
 
-        - name: Move .next/static to wwwroot
+      - name: Move .next/static to wwwroot
         run: |
           mkdir -p .next/standalone/_next/static
           cp -r .next/static .next/standalone/_next/
