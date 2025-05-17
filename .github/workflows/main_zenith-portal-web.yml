@@ -31,9 +31,6 @@ jobs:
       - name: Install production dependencies only
         run: npm install --production
 
-      - name: Copy static assets to root (for Azure static file serving)
-        run: cp -r .next/static ./static
-
       - name: Copy the updated server.js to the standalone folder
         run: cp server.js .next/standalone/server.js
 
@@ -42,7 +39,7 @@ jobs:
 
       - name: Zip build output and runtime files
         run: |
-          zip -r release.zip .next/standalone static package.json next.config.js package-lock.json startup.sh
+          zip -r release.zip .next/standalone .next/static package.json next.config.js package-lock.json startup.sh
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

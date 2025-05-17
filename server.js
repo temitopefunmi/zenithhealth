@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { createServerHandler } = require('next/dist/server/lib/render-server-standalone');
 
-const dir = path.join(__dirname);
+const dir = path.join(__dirname, '..');
 
 process.env.NODE_ENV = 'production';
 process.chdir(__dirname);
