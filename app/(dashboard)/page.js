@@ -26,10 +26,10 @@ const Home = () => {
                         <div>
                             <div className="d-flex justify-content-between align-items-center">
                                 <div className="mb-2 mb-lg-0">
-                                    <h3 className="mb-0  text-white">Projects</h3>
+                                    <h3 className="mb-0  text-white">Daily Overview</h3>
                                 </div>
                                 <div>
-                                    <Link href="#" className="btn btn-white">Create New Project</Link>
+                                    <Link href="#" className="btn btn-white">Create New Appointment</Link>
                                 </div>
                             </div>
                         </div>
