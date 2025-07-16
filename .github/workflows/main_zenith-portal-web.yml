@@ -12,9 +12,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -37,9 +35,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_912F094FA413493FB451734309D81685 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9A98EFD00EE94E41B3F4021FB2C33121 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E54F057E3488453F80B16C74A882CFA8 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C3502462DF0049FFB5757BD7BF224D00 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6B303A4091CA41009D41C54A040CA20F }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7510ED55CB7A46C2B296D20C824E6E98 }}
 
       - name: Zip files preserving symlinks
         run: |
@@ -52,4 +50,5 @@ jobs:
           app-name: 'zenith-portal-web'
           slot-name: 'Production'
           package: .
+          
           
