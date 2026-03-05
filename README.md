@@ -119,7 +119,7 @@ In your GitHub Repo, navigate to **Settings > Secrets and variables > Actions** 
 
 ### **4. Initialize Terraform Backend**
 
-Update the `backend "azurerm"` block in your `terraform` configuration with the `storage_account_name` provided in your setup output.
+Update the `backend "azurerm"` block in your `terraform/providers.tf` configuration with the `storage_account_name` provided in your setup output.
 
 ### **5. Deploy**
 

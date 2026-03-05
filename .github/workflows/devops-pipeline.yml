@@ -1,4 +1,4 @@
-name: Zenith Health - Infra & App Deployment
+name: Zenith Health - Production Pipeline
 
 on:
   push:
@@ -9,40 +9,56 @@ on:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
+    
+    # Global environment variables for the Job
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      # Add ARM_CLIENT_SECRET if you are using a standard Client Secret instead of OIDC
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }} 
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       # --- SECTION 1: INFRASTRUCTURE (TERRAFORM) ---
+      # Using v3 for better compatibility with modern Node runners
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         working-directory: ./terraform
+        # We repeat the env here to ensure the backend initialization 
+        # has direct access to the credentials to talk to the Storage Account.
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
 
       - name: Terraform Apply
         working-directory: ./terraform
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform apply -auto-approve
 
       # --- SECTION 2: APPLICATION BUILD ---
-      - name: Setup Node.js (Upgraded to 22)
-        uses: actions/setup-node@v3
+      - name: Setup Node.js (Node 22)
+        uses: actions/setup-node@v4
         with:
-          node-version: '22' #
+          node-version: '22'
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps #
+        # Using legacy-peer-deps to handle the ApexCharts version mismatch
+        run: npm install --legacy-peer-deps
 
       - name: Build Next.js App
-        run: npm run build #
+        run: npm run build
 
       # --- SECTION 3: DEPLOYMENT ---
       - name: Login to Azure
@@ -52,11 +68,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # We zip the essential files to keep the deployment package lean
       - name: Zip for Deployment
-        run: zip -r deploy.zip .next node_modules package.json public next.config.js #
+        run: zip -r deploy.zip .next node_modules package.json public next.config.js
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'zenith-portal-web' #
+          app-name: 'zenith-portal-web' 
           package: deploy.zip
