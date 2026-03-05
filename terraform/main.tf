@@ -28,7 +28,6 @@ resource "azurerm_linux_web_app" "web_app" {
 
   site_config {
     # 1. AUTOMATED STARTUP COMMAND
-    # This tells Azure exactly how to launch Next.js
     app_command_line = "npx next start -p 8080"
     application_stack {
       node_version = "22-lts"
