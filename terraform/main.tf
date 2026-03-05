@@ -30,6 +30,7 @@ resource "azurerm_linux_web_app" "web_app" {
     application_stack {
       node_version = "22-lts"
     }
+    always_on = false # Always On is not required for Free Tier, so we set it to false
   }
 
   lifecycle {
