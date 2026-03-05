@@ -58,12 +58,16 @@ jobs:
           # Using the JSON 'creds' object bypasses the OIDC federation error
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Zip for Deployment
-        run: zip -r deploy.zip .next node_modules package.json public next.config.js
+      - name: Build Next.js App
+        run: npm run build
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        with:
-          # Make sure this matches your variable 'app_name' in Terraform!
-          app-name: 'zht-portal-web' 
-          package: deploy.zip
+      - name: Prepare and Zip Standalone Build
+        run: |
+          # Copy static and public files into the standalone output
+          cp -r public .next/standalone/public
+          mkdir -p .next/standalone/.next/static
+          cp -r .next/static .next/standalone/.next/static
+          
+          # Zip the CONTENTS of the standalone folder
+          cd .next/standalone
+          zip -r ../../deploy.zip .
