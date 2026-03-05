@@ -10,47 +10,43 @@ jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
     
-    # Global environment variables for the Job
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       # --- SECTION 1: INFRASTRUCTURE (TERRAFORM) ---
-      # Using v3 for better compatibility with modern Node runners
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Debug Secret Connectivity
+        # This step helps us see if the secrets are even reaching the runner
         run: |
           echo "Checking secret presence..."
           if [ -z "$ARM_CLIENT_ID" ]; then echo "CLIENT_ID is EMPTY"; else echo "CLIENT_ID length is ${#ARM_CLIENT_ID}"; fi
           if [ -z "$ARM_TENANT_ID" ]; then echo "TENANT_ID is EMPTY"; else echo "TENANT_ID length is ${#ARM_TENANT_ID}"; fi
-          if [ -z "$ARM_CLIENT_SECRET" ]; then echo "SECRET is EMPTY"; else echo "SECRET length is ${#ARM_CLIENT_SECRET}"; fi"
+          if [ -z "$ARM_CLIENT_SECRET" ]; then echo "SECRET is EMPTY"; else echo "SECRET length is ${#ARM_CLIENT_SECRET}"; fi
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Terraform Init
         working-directory: ./terraform
-        # We repeat the env here to ensure the backend initialization 
-        # has direct access to the credentials to talk to the Storage Account.
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: '${{ secrets.AZURE_SUBSCRIPTION_ID }}''
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          # Single quotes protect the ~ character from being interpreted by the shell
+          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'
         run: terraform init
 
       - name: Terraform Apply
         working-directory: ./terraform
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}''
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'
         run: terraform apply -auto-approve
 
       # --- SECTION 2: APPLICATION BUILD ---
@@ -61,7 +57,6 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        # Using legacy-peer-deps to handle the ApexCharts version mismatch
         run: npm install --legacy-peer-deps
 
       - name: Build Next.js App
@@ -75,7 +70,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # We zip the essential files to keep the deployment package lean
       - name: Zip for Deployment
         run: zip -r deploy.zip .next node_modules package.json public next.config.js
 
