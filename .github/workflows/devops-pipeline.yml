@@ -35,75 +35,7 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'name: Zenith Health - Production Pipeline
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  terraform-and-deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # --- SECTION 1: INFRASTRUCTURE (TERRAFORM) ---
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'
-        run: terraform init
-
-      - name: Terraform Apply
-        working-directory: ./terraform
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'
-        run: terraform apply -auto-approve
-
-      # --- SECTION 2: APPLICATION BUILD ---
-      - name: Setup Node.js (Node 22)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Build Next.js App
-        run: npm run build
-
-      # --- SECTION 3: DEPLOYMENT ---
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          # Using the JSON 'creds' object bypasses the OIDC federation error
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Zip for Deployment
-        run: zip -r deploy.zip .next node_modules package.json public next.config.js
-
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        with:
-          # Make sure this matches your variable 'app_name' in Terraform!
-          app-name: 'zht-portal-web' 
-          package: deploy.zip
         run: terraform apply -auto-approve
 
       # --- SECTION 2: APPLICATION BUILD ---
