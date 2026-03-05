@@ -76,5 +76,5 @@ jobs:
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'zenith-portal-web' 
+          app-name: 'zht-portal-web' 
           package: deploy.zip
