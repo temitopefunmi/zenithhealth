@@ -24,39 +24,32 @@ resource "azurerm_storage_account" "storage" {
 }
 
 # Create an App Service Plan
-resource "azurerm_app_service_plan" "app_service_plan" {
-  name                = "zenith-health-app-service-plan"
-  location            = azurerm_resource_group.rg.location
+resource "azurerm_service_plan" "app_service_plan" {
+  name                = "asp-zenith-portal"
   resource_group_name = azurerm_resource_group.rg.name
-  kind                = "Linux"
-  reserved            = true
-  sku {
-    tier = "Basic"
-    size = "B1"
-  }
-  tags = {
-    environment = "production"
-    project     = "zenith-health"
-  }
-}   
+  location            = azurerm_resource_group.rg.location
+  
+  # These are now required top-level arguments, not blocks
+  os_type             = "Linux"
+  sku_name            = "F1" # Free Tier
+}
 
-# Create the Linux Web App
 resource "azurerm_linux_web_app" "web_app" {
-  name                = "zenith-health-web-app"
+  name                = "zenith-portal-web"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  service_plan_id = azurerm_app_service_plan.app_service_plan.id
+  service_plan_id     = azurerm_service_plan.app_service_plan.id
 
   site_config {
-    always_on = false # Set to true for production tiers (P1v2+)
-  
-
     application_stack {
-        node_version = "22-lts"
+      node_version = "22-lts"
     }
   }
-  app_settings = {
-    "NODE_ENV" = "production"
-  }
 
+  lifecycle {
+    ignore_changes = [
+      site_config[0].application_stack[0].node_version
+    ]
+  }
 }
+

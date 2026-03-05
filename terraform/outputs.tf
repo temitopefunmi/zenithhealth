@@ -1,3 +1,3 @@
 output "webapp_url" {
-  value = "http://${azurerm_linux_web_app.webapp.default_site_hostname}"
-}   
+  value = "https://${azurerm_linux_web_app.web_app.default_hostname}"
+}
