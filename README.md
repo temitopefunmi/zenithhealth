@@ -1,78 +1,147 @@
-# [DashUI Next.js Free Admin Template](https://dashui-free-nextjs-admin-template.vercel.app/)
+# Zenith Health - Cloud-Native Admin Portal
 
-Dash UI - Next.js Free admin / dashboard template created by [Codescandy](https://codescandy.com/) and available on Github
+**Zenith Health** is a sophisticated health-tech admin dashboard designed for clinical data management and operational oversight. This project represents a strategic evolution from manual "Click-Ops" cloud management to a fully automated, enterprise-grade **DevOps** lifecycle.
 
-![dashui-free-nextjs-admin-template](https://user-images.githubusercontent.com/68774600/231716707-3da30d19-b826-4692-b03a-fed41376d250.jpg)
+## 🚀 Project Evolution: From Click-Ops to DevOps
 
-## How to use DashUI?
+This repository originally started as a manual deployment using the Azure Portal. It has since been refactored to implement professional engineering standards:
 
-Clone the Dash UI repo:
+* **Infrastructure as Code (IaC):** Replaced manual resource creation with **Terraform** to ensure reproducible and version-controlled environments.
+
+
+* **Unified CI/CD:** Developed a high-maturity **GitHub Actions** pipeline that provisions the entire Azure infrastructure *before* building and deploying the application code.
+
+
+* **Zero-Trust Security:** Implemented secure authentication using an **Azure Service Principal** and encrypted **GitHub Secrets**, eliminating the risk of credential leakage in the codebase.
+
+
+
+## 🛠 Tech Stack & Architecture
+
+### **Frontend & Application**
+
+* **Framework:** Next.js 13 (Upgraded to **Node.js 22 LTS** for enhanced security and long-term support).
+
+
+* **UI Components:** React-Bootstrap, ApexCharts, and Feather Icons.
+
+
+* **Base Template:** [DashUI Next.js Free Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template) by Codescandy.
+
+
+
+### **Cloud Infrastructure (Azure)**
+
+* **App Service:** Managed hosting environment for the Node.js application.
+
+
+* **App Service Plan:** Linux-based compute resource (B1 Tier).
+
+
+* **Storage Account:** Configured as a **Remote Terraform Backend** to maintain state integrity across team members.
+
+
+
+## 🏗 DevOps Workflow
+
+### **1. Environment Bootstrapping**
+
+To ensure a clean and secure start in a new Azure subscription, the environment is initialized using a custom **Bash bootstrap script** (`setup.sh`). This script automates:
+
+1. Creating the Management Resource Group.
+
+
+2. Provisioning the Storage Account and Container for the Terraform state.
+
+
+3. Generating the **Service Principal** with the "Contributor" role for automated access.
+
+
+
+### **2. Automated Deployment Pipeline**
+
+The `.github/workflows/devops-pipeline.yml` handles the full application lifecycle on every `git push` to the `main` branch:
+
+* **Infra Stage:** Runs `terraform apply` to create/update Azure resources.
+
+
+* **Build Stage:** Compiles the Next.js app using Node.js 22.
+
+
+* **Deploy Stage:** Securely packages the application and deploys it to the provisioned Azure Web App.
+
+
+
+## 🏁 Step-by-Step Replication Guide
+
+Follow these steps to deploy the Zenith Health platform into your own Azure environment.
+
+### **1. Prerequisites**
+
+* An active **Azure Subscription**.
+* **Azure CLI** and **Terraform** installed locally.
+
+
+* **Node.js 22 LTS** installed.
+
+
+
+### **2. Bootstrap the Infrastructure**
+
+Before running the automation, you must authenticate your terminal with Azure and ensure you are targeting the correct subscription (especially important if you are using a new account with free credits).
+
+```bash
+# Log in to your Azure account
+az login
+
+# (Optional) Set the specific subscription if you have multiple
+az account set --subscription "YOUR_SUBSCRIPTION_NAME_OR_ID"
+```
+
+Run the included `setup.sh` script to create the management layer in Azure. This creates the Storage Account for Terraform's state and a Service Principal for GitHub.
+
+```bash
+chmod +x setup.sh
+./setup.sh
 
 ```
-git clone https://github.com/codescandy/dashui-free-nextjs-admin-template.git
-```
 
-```
-cd dashui-free-nextjs-admin-template
-```
+**Action:** Open the generated `azure-setup-output.txt` and copy the credentials. **Do not commit this file**.
 
-## 🚀 Getting Started
+### **3. Configure GitHub Secrets**
 
-### Installation 👨🏻‍💻
+In your GitHub Repo, navigate to **Settings > Secrets and variables > Actions** and add the following: 
 
-1. Install all packages
+* `AZURE_CLIENT_ID`
+* `AZURE_TENANT_ID`
+* `AZURE_SUBSCRIPTION_ID`
+* `AZURE_CLIENT_SECRET`
 
-```
-npm i
-```
+### **4. Initialize Terraform Backend**
 
-2. Run Development Server
+Update the `backend "azurerm"` block in your `terraform` configuration with the `storage_account_name` provided in your setup output.
 
-```
-npm run dev
-```
+### **5. Deploy**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Simply push your changes to the `main` branch. The GitHub Action will automatically initialize Terraform, build the application (Node 22), and deploy it to your new Azure environment.
 
-3. Build your project
+## 🔐 Security & Compliance
 
-```
-npm run build
-```
+In alignment with health-tech security standards:
 
-## Deploy on Vercel
+* **State Locking:** Remote state storage prevents concurrent configuration changes.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcodescandy%2Fdashui-free-nextjs-admin-template.git&project-name=dashui-nextjs-admin-dashboard&repository-name=dashui-free-nextjs-admin-template&skippable-integrations=1)
 
-## Technical Support or Questions
+* **Identity Management:** Automated deployments use a dedicated Service Principal, following the principle of **Least Privilege**.
 
-If you have questions or need help integrating the product please [contact us](https://codescandy.com/contact-us/). [Support](https://github.com/codescandy/Dash-UI/discussions)
 
-## Useful Links
+* **Secret Masking:** All sensitive values (Subscription IDs, Client Secrets) are stored in **GitHub Actions Secrets**.
 
--  [Bootstrap Template](https://dashui.codescandy.com/free-bootstrap-5-admin-dashboard-template.html)
--  [React Template](https://dashui.codescandy.com/free-reactjs-admin-dashboard-template.html)
--  [Next.js Template](https://dashui.codescandy.com/free-next-js-admin-dashboard-template.html)
--  [Nuxt.js Template](https://dashui.codescandy.com/free-nuxt-js-admin-dashboard-template.html)
--  [Tailwind Template](https://dashui.codescandy.com/free-tailwindcss-admin-dashboard-html-template.html)
 
-## Figma Design File
 
-Ready to use [Figma File](https://www.figma.com/community/file/1259105309122518026/dash-ui-admin-dashboard-template).
+## 📜 Credits & Acknowledgments
 
-## Upgrade to PRO
+* **UI Base:** This project utilizes the [DashUI Next.js Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template) by Codescandy.
 
-Get more power with [Dash UI pro](https://dashui.codescandy.com/) featuring bunch of UI components, forms, tables, charts, pages, and icons.
 
-| Free Version                                                                                       | DashUI PRO                                                                                  |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| ✔️ 1 Dashboard                                                                                     | ✔️ 6 Dashboard                                                                              |
-| ✔️ 11 HTML Pages                                                                                   | ✔️ 60+ HTML pages                                                                           |
-| ✔️ Includine Docs                                                                                  | ✔️ Documentation                                                                            |
-| ✔️ 4 Plugins                                                                                       | ✔️ 10+ Plugins                                                                              |
-| ✔️ Source Files                                                                                    | ✔️ Source Files                                                                             |
-| ❌ Dark Mode                                                                                       | ✔️ Dark Mode                                                                                |
-| ❌ Layout Options                                                                                  | ✔️ Layout Variations                                                                        |
-| ❌ Priority Support                                                                                | ✔️ Priority Support                                                                         |
-| -                                                                                                  | ✔️ Free Update                                                                              |
-| [Free Download](https://dashui.codescandy.com/free-next-js-admin-dashboard-template.html) | [Get Dash UI](https://dashui.codescandy.com/next-js-admin-dashboard-template.html) |
+* **DevOps Architect:** Adapted and "Enterprise-ified" by **Temitope Olayinka** as part of a specialized Cloud & DevOps engineering portfolio.

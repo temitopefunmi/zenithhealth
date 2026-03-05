@@ -1,0 +1,62 @@
+name: Zenith Health - Infra & App Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  terraform-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # Add ARM_CLIENT_SECRET if you are using a standard Client Secret instead of OIDC
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }} 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --- SECTION 1: INFRASTRUCTURE (TERRAFORM) ---
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      # --- SECTION 2: APPLICATION BUILD ---
+      - name: Setup Node.js (Upgraded to 22)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22' #
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps #
+
+      - name: Build Next.js App
+        run: npm run build #
+
+      # --- SECTION 3: DEPLOYMENT ---
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Zip for Deployment
+        run: zip -r deploy.zip .next node_modules package.json public next.config.js #
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'zenith-portal-web' #
+          package: deploy.zip

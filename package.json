@@ -21,7 +21,7 @@
     "nextjs-template",
     "react-dashboard",
     "bootstrap 5"
-    ],
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -30,15 +30,14 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.0.1",
-    "apexcharts": "^3.41.1",
+    "apexcharts": "^4.0.0",
     "bootstrap": "^5.3.1",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
-    "next": "13.4.12",
-    "node-sass": "^9.0.0",
+    "next": "^13.5.6",
     "prism-react-renderer": "^2.0.6",
     "react": "18.2.0",
-    "react-apexcharts": "^1.4.1",
+    "react-apexcharts": "^1.9.0",
     "react-bootstrap": "^2.8.0",
     "react-bootstrap-icons": "^1.10.3",
     "react-copy-to-clipboard": "^5.1.0",
