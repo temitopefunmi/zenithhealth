@@ -28,7 +28,7 @@ resource "azurerm_linux_web_app" "web_app" {
 
   site_config {
     # 1. AUTOMATED STARTUP COMMAND
-    app_command_line = "npx next start -p 8080"
+    app_command_line = "node server.js"
     application_stack {
       node_version = "22-lts"
     }
