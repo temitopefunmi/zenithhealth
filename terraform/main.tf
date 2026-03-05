@@ -35,7 +35,7 @@ resource "azurerm_linux_web_app" "web_app" {
     always_on = false # Always On is not required for Free Tier, so we set it to false
   }
   app_settings = {
-    "PORT" = "8080"
+    "WEBSITE_PORT" = "8080"
     "NODE_ENV" = "production"
   }
 

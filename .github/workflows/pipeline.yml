@@ -9,14 +9,18 @@ on:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
+
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --- SECTION 1: INFRASTRUCTURE ---
+      # -----------------------------
+      # 1️⃣ INFRASTRUCTURE (Terraform)
+      # -----------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -26,34 +30,64 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_CLIENT_SECRET: '${{ secrets.AZURE_CLIENT_SECRET }}'
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           terraform init
           terraform apply -auto-approve
 
-      # --- SECTION 2: BUILD ---
-      - name: Setup Node.js (Node 22)
+      # -----------------------------
+      # 2️⃣ BUILD NEXT.JS
+      # -----------------------------
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 22
+          cache: npm
 
-      - name: Install & Build
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build App
+        run: npm run build
+
+      # -----------------------------
+      # 3️⃣ PREPARE STANDALONE BUILD
+      # -----------------------------
+      - name: Prepare Standalone Deployment
         run: |
-          npm install --legacy-peer-deps
-          npm run build
+          echo "Preparing Next.js standalone build..."
 
-      # --- SECTION 3: DEPLOY ---
+          # Copy public assets
+          cp -r public .next/standalone/public || true
+
+          # Copy static assets
+          mkdir -p .next/standalone/.next
+          cp -r .next/static .next/standalone/.next/static
+
+          echo "Standalone folder contents:"
+          ls -la .next/standalone
+
+      # -----------------------------
+      # 4️⃣ CREATE DEPLOYMENT PACKAGE
+      # -----------------------------
+      - name: Create Deployment Zip
+        run: |
+          cd .next/standalone
+          zip -r ../../deploy.zip .
+
+      - name: Verify Deployment Package
+        run: unzip -l deploy.zip | head -40
+
+      # -----------------------------
+      # 5️⃣ DEPLOY TO AZURE
+      # -----------------------------
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Zip for Deployment
-        run: zip -r deploy.zip .next node_modules package.json public next.config.js
-
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'zht-portal-web' 
+          app-name: zht-portal-web
           package: deploy.zip
