@@ -55,19 +55,22 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          # Using the JSON 'creds' object bypasses the OIDC federation error
+          # This requires the AZURE_CREDENTIALS JSON secret we discussed
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Build Next.js App
-        run: npm run build
 
       - name: Prepare and Zip Standalone Build
         run: |
-          # Copy static and public files into the standalone output
+          # Next.js standalone build requires static and public files to be manually moved
           cp -r public .next/standalone/public
           mkdir -p .next/standalone/.next/static
           cp -r .next/static .next/standalone/.next/static
           
-          # Zip the CONTENTS of the standalone folder
+          # Zip everything inside the standalone folder
           cd .next/standalone
           zip -r ../../deploy.zip .
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'zht-portal-web' 
+          package: deploy.zip
