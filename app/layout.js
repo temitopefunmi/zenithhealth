@@ -3,9 +3,12 @@ import Link from 'next/link';
 import 'styles/theme.scss';
 
 export const metadata = {
-    title: 'Dash UI - Next.Js Admin Dashboard Template',
-    description: 'Dash UI - Next JS admin dashboard template is free and available on GitHub. Create your stunning web apps with our Free Next js template. An open-source admin dashboard built using the new router, server components, and everything new in Next.js 13.',
-    keywords: 'Dash UI, Next.js 13, Admin dashboard, admin template, web apps, bootstrap 5, admin theme'
+    title: 'Zenith Health | Clinical Admin Portal',
+    description: 'Secure health-tech infrastructure managed via IaC.',
+    keywords: 'HealthTech, Azure, DevOps, Terraform',
+    icons: {
+        icon: '/favicon.svg', // Points to the free file you just made!
+    },
 }
 
 export default function RootLayout({ children }) {

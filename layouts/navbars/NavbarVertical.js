@@ -98,8 +98,9 @@ const NavbarVertical = (props) => {
 		<Fragment>
 			<SimpleBar style={{ maxHeight: '100vh' }}>
 				<div className="nav-scroller">
-					<Link href="/" className="navbar-brand">
-						<Image src="/images/brand/logo/logo.svg" alt="" />
+					<Link href="/" className="navbar-brand d-flex align-items-center gap-2">
+						<Image src="/images/brand/logo/logo.svg" width={32} height={32} alt="Zenith Logo" />
+						<span className="text-white fw-bold fs-3">Zenith Health</span>
 					</Link>
 				</div>				
 				{/* Dashboard Menu */}

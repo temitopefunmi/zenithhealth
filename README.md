@@ -12,8 +12,7 @@ This repository originally started as a manual deployment using the Azure Portal
 * **Unified CI/CD:** Developed a high-maturity **GitHub Actions** pipeline that provisions the entire Azure infrastructure *before* building and deploying the application code.
 
 
-* **Zero-Trust Security:** Implemented secure authentication using an **Azure Service Principal** and encrypted **GitHub Secrets**, eliminating the risk of credential leakage in the codebase.
-
+* **Zero-Trust Security:** Implemented secure authentication using an **Azure Service Principal** and encrypted **GitHub Secrets**. This eliminates the risk of credential leakage in the codebase and lays the foundation for the passwordless OIDC migration in Phase 3.
 
 
 ## 🛠 Tech Stack & Architecture
@@ -35,7 +34,7 @@ This repository originally started as a manual deployment using the Azure Portal
 * **App Service:** Managed hosting environment for the Node.js application.
 
 
-* **App Service Plan:** Linux-based compute resource (B1 Tier).
+* **App Service Plan:** Linux-based compute resource (F1 Tier).
 
 
 * **Storage Account:** Configured as a **Remote Terraform Backend** to maintain state integrity across team members.
@@ -79,8 +78,8 @@ Follow these steps to deploy the Zenith Health platform into your own Azure envi
 ### **1. Prerequisites**
 
 * An active **Azure Subscription**.
-* **Azure CLI** and **Terraform** installed locally.
 
+* **Azure CLI** and **Terraform** installed locally.
 
 * **Node.js 22 LTS** installed.
 
@@ -110,12 +109,38 @@ chmod +x setup.sh
 
 ### **3. Configure GitHub Secrets**
 
-In your GitHub Repo, navigate to **Settings > Secrets and variables > Actions** and add the following: 
+In your GitHub Repo, navigate to **Settings > Secrets and variables > Actions** and add the following with their respective values: 
 
 * `AZURE_CLIENT_ID`
 * `AZURE_TENANT_ID`
 * `AZURE_SUBSCRIPTION_ID`
 * `AZURE_CLIENT_SECRET`
+
+Then also add:
+
+* `AZURE_CREDENTIALS`: Paste the JSON below filled with their respective values:
+
+```json
+{
+  "clientId": "YOUR_CLIENT_ID",
+  "clientSecret": "YOUR_CLIENT_SECRET",
+  "subscriptionId": "YOUR_SUBSCRIPTION_ID",
+  "tenantId": "YOUR_TENANT_ID"
+}
+```
+In your workflow:
+
+```yaml
+- name: Login to Azure
+  uses: azure/login@v2
+  with:
+    creds: ${{ secrets.AZURE_CREDENTIALS }}
+```
+
+The `creds` input is **how the Azure GitHub Action authenticates**. It expects a **JSON string** that contains your Service Principal credentials. Without it, the workflow **cannot log in to Azure**, so every subsequent deployment step will fail.
+
+> 🔒 This keeps your credentials secure — they are **masked in GitHub logs** and not stored in your code.
+---
 
 ### **4. Initialize Terraform Backend**
 
@@ -138,6 +163,7 @@ In alignment with health-tech security standards:
 * **Secret Masking:** All sensitive values (Subscription IDs, Client Secrets) are stored in **GitHub Actions Secrets**.
 
 
+---
 
 ## 📜 Credits & Acknowledgments
 
