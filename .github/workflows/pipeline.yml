@@ -62,7 +62,7 @@ jobs:
       - name: Prepare Staging Folder
         run: |
           mkdir -p deploy_staging
-          cp -r .next/standalone/* ./deploy_staging/
+          cp -r .next/standalone/. ./deploy_staging/
           cp -r public ./deploy_staging/public || true
           mkdir -p ./deploy_staging/.next
           cp -r .next/static ./deploy_staging/.next/static
