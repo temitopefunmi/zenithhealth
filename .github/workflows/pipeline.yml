@@ -13,26 +13,24 @@ permissions:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
-    
+
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Enforce Node.js 24 for all JavaScript-based actions
+      # 🚀 Fixes the Node.js 20 deprecation warning
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # 🔑 OIDC Auth Variables for Terraform
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_USE_OIDC: true
 
     steps:
-
       # -----------------------------
-      # Checkout
+      # 1️⃣ Setup & Azure Login
       # -----------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # -----------------------------
-      # Login to Azure (OIDC)
-      # -----------------------------
-      - name: Login to Azure
+      - name: Login to Azure (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -40,7 +38,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # -----------------------------
-      # Terraform Setup
+      # 2️⃣ Infrastructure (Terraform)
       # -----------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -59,7 +57,7 @@ jobs:
         run: terraform apply -auto-approve
 
       # -----------------------------
-      # Node / Next.js Build
+      # 3️⃣ Build Next.js App
       # -----------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -74,30 +72,31 @@ jobs:
         run: npm run build
 
       # -----------------------------
-      # Prepare Standalone Build
+      # 4️⃣ Prepare & Zip (The Surgical Fix)
       # -----------------------------
       - name: Prepare Standalone Deployment
         run: |
-          echo "Preparing standalone build..."
+          echo "Injecting assets into standalone folder..."
           cp -r public .next/standalone/public || true
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
-          cp package.json .next/standalone/
           cp .next/required-server-files.json .next/standalone/.next/ || true
           
-          echo "Verifying server.js exists in standalone folder:"
-          ls -F .next/standalone | grep server.js
+          echo "Verifying server.js location:"
+          ls -F .next/standalone/server.js
 
-      # -----------------------------
-      # Zip Package
-      # -----------------------------
       - name: Create Deployment Zip
         run: |
+          # We use '*' to avoid zipping the '.' (dot) directory 
+          # which often causes 'Module Not Found' in Azure
           cd .next/standalone
-          zip -r ../../deploy.zip .
+          zip -r ../../deploy.zip * .next/
+          
+          echo "--- ZIP STRUCTURE VERIFICATION ---"
+          unzip -l ../../deploy.zip | head -n 15
 
       # -----------------------------
-      # Deploy to Azure Web App
+      # 5️⃣ Deploy to Azure
       # -----------------------------
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
