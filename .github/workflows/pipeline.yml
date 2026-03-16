@@ -72,7 +72,7 @@ jobs:
           cd deploy_staging
           zip -r ../deploy.zip .
           echo "Verify: server.js should be at the TOP of this list:"
-          unzip -l ../deploy.zip | head -n 10
+          unzip -l ../deploy.zip | grep server.js
 
       # -----------------------------
       # 5️⃣ Deploy to Azure
