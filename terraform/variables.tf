@@ -19,7 +19,7 @@ variable "location" {
 variable "app_name" {
   description = "The name of the application"
   type = string
-  default = "zht-portal-web"
+  default = "zht-dashboard"
 }
 
 variable "github_repo" {

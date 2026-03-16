@@ -2,7 +2,7 @@
 
 # --- CONFIGURATION ---
 PROJECT_NAME="zenith"
-APP_NAME="zht-portal-web"
+APP_NAME="zht-dashboard"
 LOCATION="westeurope"
 MGMT_RG="rg-${PROJECT_NAME}-mgmt"
 STORAGE_NAME="${PROJECT_NAME}tfstate$(date +%s)" # Generates a unique name
