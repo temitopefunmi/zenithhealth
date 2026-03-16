@@ -77,31 +77,21 @@ jobs:
       # -----------------------------
       - name: Prepare Standalone Deployment
         run: |
-          echo "Preparing standalone build"
-
+          echo "Preparing standalone build..."
           cp -r public .next/standalone/public || true
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
           cp package.json .next/standalone/
-
-          echo "Standalone contents:"
-          ls -la .next/standalone
+          cp .next/required-server-files.json .next/standalone/.next/ || true
+          
+          echo "Verifying server.js exists in standalone folder:"
+          ls -F .next/standalone | grep server.js
 
       # -----------------------------
       # Zip Package
       # -----------------------------
       - name: Create Deployment Zip
         run: |
-          # Check if zip is installed
-          if ! command -v zip &> /dev/null
-          then
-            echo "zip not found, installing..."
-            sudo apt-get update
-            sudo apt-get install -y zip
-          else
-            echo "zip is already installed"
-          fi
-
           cd .next/standalone
           zip -r ../../deploy.zip .
 
