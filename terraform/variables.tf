@@ -13,7 +13,7 @@ variable "mgmt_resource_group_name" {
 variable "location" {
   description = "The Azure region where resources will be created"
   type = string
-  default = "uksouth"
+  default = "westeurope"
 }
 
 variable "app_name" {
