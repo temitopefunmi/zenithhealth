@@ -72,28 +72,25 @@ jobs:
         run: npm run build
 
       # -----------------------------
-      # 4️⃣ Prepare & Zip (The Surgical Fix)
+      # PREPARE STANDALONE BUILD
       # -----------------------------
       - name: Prepare Standalone Deployment
         run: |
-          echo "Injecting assets into standalone folder..."
+          echo "Preparing standalone build..."
+
           cp -r public .next/standalone/public || true
+
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
-          cp .next/required-server-files.json .next/standalone/.next/ || true
-          
-          echo "Verifying server.js location:"
-          ls -F .next/standalone/server.js
 
-      - name: Create Deployment Zip
+          echo "Standalone contents:"
+          ls -la .next/standalone
+        # Create a zip file for deployment
+      - name: Create Deployment Package
         run: |
-          # We use '*' to avoid zipping the '.' (dot) directory 
-          # which often causes 'Module Not Found' in Azure
+          echo "Creating deployment package..."
           cd .next/standalone
-          zip -r ../../deploy.zip * .next/
-          
-          echo "--- ZIP STRUCTURE VERIFICATION ---"
-          unzip -l ../../deploy.zip | head -n 15
+          zip -r ../../deploy.zip .
 
       # -----------------------------
       # 5️⃣ Deploy to Azure
