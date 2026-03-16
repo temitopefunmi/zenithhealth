@@ -8,7 +8,7 @@ MGMT_RG="rg-${PROJECT_NAME}-mgmt"
 STORAGE_NAME="${PROJECT_NAME}tfstate$(date +%s)" # Generates a unique name
 CONTAINER_NAME="tfstate"
 IDENTITY_NAME="id-${PROJECT_NAME}-github"
-GITHUB_REPO="temitopefunmi/zenith-health" # Change 'username/repo-name' to your actual GitHub repository in the format 'username/repo-name'
+GITHUB_REPO="temitopefunmi/zenithhealth" # Change 'username/repo-name' to your actual GitHub repository in the format 'username/repo-name'
 OUTPUT_FILE="azure-setup-output.txt"
 
 echo "Step 1: Creating Management Resource Group..."

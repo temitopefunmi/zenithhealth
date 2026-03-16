@@ -31,5 +31,5 @@ variable "github_repo" {
 variable "storage_account_name" {
   type        = string
   description = "The name of the storage account for Terraform state"
-  default     = "zenithtfstate1773660616"
+  default     = "zenithtfstate1773663120"
 }
