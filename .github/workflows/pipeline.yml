@@ -13,8 +13,9 @@ permissions:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
-    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Enforce Node.js 24 for all JavaScript-based actions
+    
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Enforce Node.js 24 for all JavaScript-based actions
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
