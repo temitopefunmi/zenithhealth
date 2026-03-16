@@ -8,14 +8,13 @@ MGMT_RG="rg-${PROJECT_NAME}-mgmt"
 STORAGE_NAME="${PROJECT_NAME}tfstate$(date +%s)" # Generates a unique name
 CONTAINER_NAME="tfstate"
 IDENTITY_NAME="id-${PROJECT_NAME}-github"
-GITHUB_REPO="temitopefunmi/zenithhealth" # Change 'username/repo-name' to your actual GitHub repository in the format 'username/repo-name'
+GITHUB_REPO="temitopefunmi/zenithhealth"
 OUTPUT_FILE="azure-setup-output.txt"
 
 echo "Step 1: Creating Management Resource Group..."
 az group create --name $MGMT_RG --location $LOCATION
 
 echo "Step 2: Checking/Creating Storage Account for Terraform State..."
-# Checking if storage exists first so we don't duplicate
 if [ $(az storage account check-name --name $STORAGE_NAME --query 'nameAvailable' -o tsv) == "true" ]; then
     az storage account create --resource-group $MGMT_RG --name $STORAGE_NAME --sku Standard_LRS --encryption-services blob
     az storage container create --name $CONTAINER_NAME --account-name $STORAGE_NAME
@@ -24,25 +23,44 @@ else
 fi
 
 echo "Step 3: Creating User-Assigned Managed Identity..."
-# Create the Identity
 IDENTITY_JSON=$(az identity create --name $IDENTITY_NAME --resource-group $MGMT_RG)
 CLIENT_ID=$(echo $IDENTITY_JSON | jq -r .clientId)
 TENANT_ID=$(az account show --query tenantId -o tsv)
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
-echo "Step 4: Assigning Contributor Role to the Identity..."
-# Give the identity power over the subscription
+# -----------------------------
+# Step 4: Poll until identity is available in Azure AD
+# -----------------------------
+echo "Step 4: Waiting for managed identity to propagate in Azure AD..."
+MAX_RETRIES=12
+SLEEP_SEC=5
+RETRY_COUNT=0
+
+until az ad sp show --id $CLIENT_ID &> /dev/null; do
+    ((RETRY_COUNT++))
+    if [ $RETRY_COUNT -gt $MAX_RETRIES ]; then
+        echo "ERROR: Managed Identity $CLIENT_ID did not appear in Azure AD after $((MAX_RETRIES*SLEEP_SEC)) seconds."
+        exit 1
+    fi
+    echo "Waiting for managed identity to appear in Azure AD... ($RETRY_COUNT/$MAX_RETRIES)"
+    sleep $SLEEP_SEC
+done
+
+echo "Managed identity is now available in Azure AD. Assigning Contributor role..."
 az role assignment create --assignee $CLIENT_ID --role "Contributor" --scope "/subscriptions/$SUBSCRIPTION_ID"
 
-echo "Step 5: Syncing Secrets to GitHub using 'gh' CLI..."
-# This pushes the secrets directly to your repo
+# -----------------------------
+# Step 5: Sync secrets/variables to GitHub
+# -----------------------------
 gh secret set AZURE_CLIENT_ID --body "$CLIENT_ID"
 gh secret set AZURE_TENANT_ID --body "$TENANT_ID"
 gh secret set AZURE_SUBSCRIPTION_ID --body "$SUBSCRIPTION_ID"
 gh variable set APP_NAME --body "$APP_NAME"
+gh variable set STORAGE_ACCOUNT_NAME --body "$STORAGE_NAME"
 
-echo "Step 6: Creating the OIDC Handshake (Federated Credential)..."
-# This is the critical step to link GitHub Actions with Azure AD via OIDC
+# -----------------------------
+# Step 6: Create OIDC Federated Credential
+# -----------------------------
 az identity federated-credential create \
     --name "github-actions" \
     --identity-name $IDENTITY_NAME \
@@ -51,11 +69,12 @@ az identity federated-credential create \
     --subject "repo:${GITHUB_REPO}:ref:refs/heads/main" \
     --audiences "api://AzureADTokenExchange"
 
-echo "Step 7: Saving details to $OUTPUT_FILE for reference..."
+# -----------------------------
+# Step 7: Save output for reference
+# -----------------------------
 {
     echo "--- AZURE OIDC SETUP FOR ZENITH HEALTH ---"
     echo "Date: $(date)"
-    echo "Edit terraform.tfvars to update these values if needed before running Terraform."
     echo "Subscription ID: $SUBSCRIPTION_ID"
     echo "Tenant ID:       $TENANT_ID"
     echo "Management RG:   $MGMT_RG"
@@ -68,7 +87,6 @@ echo "Step 7: Saving details to $OUTPUT_FILE for reference..."
 } > $OUTPUT_FILE
 
 echo "--------------------------------------------------------"
-echo "Success! GitHub Secrets have been synced automatically."
-echo "CRITICAL: You must now run Terraform to create the Federated Identity Credential"
-echo "to complete the OIDC handshake."
+echo "Success! GitHub Secrets and Variables have been synced automatically."
+echo "The federated credential is ready for OIDC login."
 echo "--------------------------------------------------------"
