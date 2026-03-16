@@ -70,25 +70,35 @@ jobs:
 
       - name: Build App
         run: npm run build
+      - name: Debug Next output
+        run: |
+          echo "Check .next"
+          ls -la .next
+
+          echo "Check standalone"
+          ls -la .next/standalone || true
+
+          echo "Check server.js"
+          ls -la .next/standalone/server.js || true
 
       # -----------------------------
-      # PREPARE STANDALONE BUILD
+      # 3️⃣ PREPARE STANDALONE BUILD
       # -----------------------------
       - name: Prepare Standalone Deployment
         run: |
-          echo "Preparing standalone build..."
-
+          echo "Preparing Next.js standalone build..."
+          # Copy public assets
           cp -r public .next/standalone/public || true
-
+          # Copy static assets
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
-
-          echo "Standalone contents:"
+          echo "Standalone folder contents:"
           ls -la .next/standalone
-        # Create a zip file for deployment
-      - name: Create Deployment Package
+      # -----------------------------
+      # 4️⃣ CREATE DEPLOYMENT PACKAGE
+      # -----------------------------
+      - name: Create Deployment Zip
         run: |
-          echo "Creating deployment package..."
           cd .next/standalone
           zip -r ../../deploy.zip .
 
