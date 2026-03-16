@@ -1,11 +1,28 @@
 variable "resource_group_name" {
-  default = "rg-zenith-health"
+  description = "The name of the resource group"
+  type = string
+}
+
+variable "mgmt_resource_group_name" {
+  description = "The name of the management resource group for identity and secrets"
+  type = string
 }
 
 variable "location" {
-  default = "westeurope"
+  description = "The Azure region where resources will be created"
+  type = string
 }
 
 variable "app_name" {
-  default = "zht-portal-web" # Change 'mac' to your initials or a random number
+  description = "The name of the application"
+  type = string
+}
+
+variable "github_repo" {
+  type        = string
+  description = "The GitHub repository in the format 'username/repo-name'"
+}
+
+variable "storage_account_name" {
+  
 }
