@@ -2,8 +2,7 @@ name: Zenith Health - Production Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,94 +12,62 @@ permissions:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
-
     env:
-      # 🚀 Fixes the Node.js 20 deprecation warning
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      # 🔑 OIDC Auth Variables for Terraform
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_USE_OIDC: true
 
     steps:
-      # -----------------------------
-      # 1️⃣ Setup & Azure Login
-      # -----------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Login to Azure (OIDC)
+      # 1️⃣ LOGIN (OIDC - No Secrets/JSON needed)
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # -----------------------------
-      # 2️⃣ Infrastructure (Terraform)
-      # -----------------------------
+      # 2️⃣ INFRASTRUCTURE
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
+      - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
-          terraform init \
-            -backend-config="storage_account_name=${{ vars.STORAGE_ACCOUNT_NAME }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=terraform.tfstate" \
-            -backend-config="resource_group_name=rg-zenith-mgmt"
+          terraform init -backend-config="storage_account_name=${{ vars.STORAGE_ACCOUNT_NAME }}"
+          terraform apply -auto-approve
 
-      - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve
-
-      # -----------------------------
-      # 3️⃣ Build Next.js App
-      # -----------------------------
+      # 3️⃣ BUILD
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install Dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Build App
-        run: npm run build
-      - name: Debug Next output
+      - name: Install & Build
         run: |
-          echo "Check .next"
-          ls -la .next
+          npm ci --legacy-peer-deps
+          npm run build
 
-          echo "Check standalone"
-          ls -la .next/standalone || true
-
-          echo "Check server.js"
-          ls -la .next/standalone/server.js || true
-
-      # -----------------------------
-      # 3️⃣ PREPARE STANDALONE BUILD
-      # -----------------------------
-      - name: Prepare Standalone Deployment
+      # 4️⃣ THE SURGICAL ZIP (This fixes the MODULE_NOT_FOUND error)
+      - name: Prepare Staging Folder
         run: |
-          echo "Preparing Next.js standalone build..."
-          # Copy public assets
-          cp -r public .next/standalone/public || true
-          # Copy static assets
-          mkdir -p .next/standalone/.next
-          cp -r .next/static .next/standalone/.next/static
-          echo "Standalone folder contents:"
-          ls -la .next/standalone
-      # -----------------------------
-      # 4️⃣ CREATE DEPLOYMENT PACKAGE
-      # -----------------------------
-      - name: Create Deployment Zip
+          mkdir -p deploy_staging
+          cp -r .next/standalone/* ./deploy_staging/
+          cp -r public ./deploy_staging/public || true
+          mkdir -p ./deploy_staging/.next
+          cp -r .next/static ./deploy_staging/.next/static
+          
+      - name: Create Package
         run: |
-          cd .next/standalone
-          zip -r ../../deploy.zip .
+          cd deploy_staging
+          zip -r ../deploy.zip .
+          echo "Verify: server.js should be at the TOP of this list:"
+          unzip -l ../deploy.zip | head -n 10
 
       # -----------------------------
       # 5️⃣ Deploy to Azure
