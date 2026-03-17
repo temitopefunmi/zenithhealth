@@ -3,6 +3,12 @@ name: Zenith Health - Production Pipeline
 on:
   push:
     branches: [main]
+    # 🎯 Added Path Filtering to save time
+    paths:
+      - 'terraform/**'
+      - 'app/**'
+      - 'components/**'
+      - 'package*.json'
   workflow_dispatch:
 
 permissions:
@@ -18,12 +24,14 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_USE_OIDC: true
+      # 🔐 This allows Terraform to pass the app_name variable automatically
+      TF_VAR_app_name: ${{ vars.APP_NAME }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1️⃣ LOGIN (OIDC - No Secrets/JSON needed)
+      # 1️⃣ LOGIN
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -44,9 +52,10 @@ jobs:
             -backend-config="resource_group_name=rg-zenith-mgmt" \
             -backend-config="key=terraform.tfstate"
           
+          # Terraform will now create the SQL DB, Key Vault, and Managed Identity
           terraform apply -auto-approve
 
-      # 3️⃣ BUILD
+      # 3️⃣ BUILD (Standard Next.js Build)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -58,7 +67,7 @@ jobs:
           npm ci --legacy-peer-deps
           npm run build
 
-      # 4️⃣ PREPARE STANDALONE BUILD
+      # 4️⃣ PREPARE PACKAGE
       - name: Prepare Staging Folder
         run: |
           mkdir -p deploy_staging
@@ -71,12 +80,8 @@ jobs:
         run: |
           cd deploy_staging
           zip -r ../deploy.zip .
-          echo "Verify: server.js should be at the TOP of this list:"
-          unzip -l ../deploy.zip | grep server.js
 
-      # -----------------------------
-      # 5️⃣ Deploy to Azure
-      # -----------------------------
+      # 5️⃣ DEPLOY
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
