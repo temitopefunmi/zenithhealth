@@ -102,6 +102,7 @@ resource "azurerm_linux_web_app" "web_app" {
   }
 
   site_config {
+    always_on = false
     app_command_line = "node server.js"
     application_stack {
       node_version = "22-lts"
@@ -128,6 +129,7 @@ resource "azurerm_linux_web_app" "web_app" {
       site_config[0].application_stack[0].node_version
     ]
   }
+ 
 }
 
 # Fetch the Web App identity after creation
