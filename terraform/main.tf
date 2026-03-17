@@ -130,11 +130,16 @@ resource "azurerm_linux_web_app" "web_app" {
   }
 }
 
+# Create webapp identity
+resource "azurerm_linux_web_app_identity" "web_app_identity" {
+  web_app_id = azurerm_linux_web_app.web_app.id
+}
+
 # 11. Create access policy for the Web App's Managed Identity to read secrets from Key Vault
 resource "azurerm_key_vault_access_policy" "web_app_access" {
   key_vault_id = azurerm_key_vault.kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_web_app.web_app.identity.principal_id
+  object_id    = azurerm_linux_web_app.web_app_identity.principal_id
   secret_permissions = [
     "Get", "List"
   ]
