@@ -1,67 +1,64 @@
 'use client'
-// import node module libraries
-import { Fragment } from "react";
-import Link from 'next/link';
-import { Container, Col, Row } from 'react-bootstrap';
-
-// import widget/custom components
+import { Fragment, useState } from "react"; // Added useState
+import { Container, Col, Row, Button } from 'react-bootstrap'; // Added Button
 import { StatRightTopIcon } from "widgets";
-
-// import sub components
-import { ActiveProjects, Teams, 
-    TasksPerformance 
-} from "sub-components";
-
-// import required data files
+import { ActiveProjects, Teams, TasksPerformance } from "sub-components";
 import ProjectsStatsData from "data/dashboard/ProjectsStatsData";
+import BookingModal from "sub-components/dashboard/BookingModal"; // Import your Modal
 
 const Home = () => {
+    const [showModal, setShowModal] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
     return (
         <Fragment>
             <div className="bg-primary pt-10 pb-21"></div>
             <Container fluid className="mt-n22 px-6">
                 <Row>
                     <Col lg={12} md={12} xs={12}>
-                        {/* Page header */}
-                        <div>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div className="mb-2 mb-lg-0">
-                                    <h3 className="mb-0  text-white">Daily Overview</h3>
-                                </div>
-                                <div>
-                                    <Link href="#" className="btn btn-white">Create New Appointment</Link>
-                                </div>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div className="mb-2 mb-lg-0">
+                                <h3 className="mb-0 text-white">Daily Overview</h3>
+                            </div>
+                            <div>
+                                {/* Changed Link to Button */}
+                                <Button 
+                                    variant="white" 
+                                    onClick={() => setShowModal(true)}
+                                >
+                                    Create New Appointment
+                                </Button>
                             </div>
                         </div>
                     </Col>
-                    {ProjectsStatsData.map((item, index) => {
-                        return (
-                            <Col xl={3} lg={6} md={12} xs={12} className="mt-6" key={index}>
-                                <StatRightTopIcon info={item} />
-                            </Col>
-                        )
-                    })}
+                    {ProjectsStatsData.map((item, index) => (
+                        <Col xl={3} lg={6} md={12} xs={12} className="mt-6" key={index}>
+                            <StatRightTopIcon info={item} />
+                        </Col>
+                    ))}
                 </Row>
 
-                {/* Active Projects  */}
-                <ActiveProjects />
+                {/* Added key={refreshKey} to trigger a re-fetch when an appointment is added */}
+                <Row className="mt-6">
+                   <ActiveProjects key={refreshKey} />
+                </Row>
 
                 <Row className="my-6">
                     <Col xl={4} lg={12} md={12} xs={12} className="mb-6 mb-xl-0">
-
-                        {/* Tasks Performance  */}
                         <TasksPerformance />
-
                     </Col>
-                    {/* card  */}
                     <Col xl={8} lg={12} md={12} xs={12}>
-
-                        {/* Teams  */}
                         <Teams />
-
                     </Col>
                 </Row>
             </Container>
+
+            {/* Include the Modal at the bottom */}
+            <BookingModal 
+                show={showModal} 
+                onHide={() => setShowModal(false)} 
+                onSave={() => setRefreshKey(old => old + 1)} 
+            />
         </Fragment>
     )
 }
