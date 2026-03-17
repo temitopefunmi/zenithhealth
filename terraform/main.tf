@@ -29,7 +29,7 @@ resource "azurerm_linux_web_app" "web_app" {
   service_plan_id     = azurerm_service_plan.app_service_plan.id
 
   site_config {
-    app_command_line = "node .next/standalone/server.js"
+    app_command_line = "node server.js"
 
     application_stack {
       node_version = "22-lts"
