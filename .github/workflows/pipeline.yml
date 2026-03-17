@@ -58,7 +58,7 @@ jobs:
           npm ci --legacy-peer-deps
           npm run build
 
-      # 4️⃣ THE SURGICAL ZIP (This fixes the MODULE_NOT_FOUND error)
+      # 4️⃣ PREPARE STANDALONE BUILD
       - name: Prepare Staging Folder
         run: |
           mkdir -p deploy_staging
