@@ -1,173 +1,86 @@
+
 # Zenith Health - Cloud-Native Admin Portal
 
 **Zenith Health** is a sophisticated health-tech admin dashboard designed for clinical data management and operational oversight. This project represents a strategic evolution from manual "Click-Ops" cloud management to a fully automated, enterprise-grade **DevOps** lifecycle.
 
 ## 🚀 Project Evolution: From Click-Ops to DevOps
 
-This repository originally started as a manual deployment using the Azure Portal. It has since been refactored to implement professional engineering standards:
+This repository originally started as a manual deployment and has since been refactored to implement professional engineering standards:
 
-* **Infrastructure as Code (IaC):** Replaced manual resource creation with **Terraform** to ensure reproducible and version-controlled environments.
-
-
-* **Unified CI/CD:** Developed a high-maturity **GitHub Actions** pipeline that provisions the entire Azure infrastructure *before* building and deploying the application code.
-
-
-* **Zero-Trust Security:** Implemented secure authentication using an **Azure Service Principal** and encrypted **GitHub Secrets**. This eliminates the risk of credential leakage in the codebase and lays the foundation for the passwordless OIDC migration in Phase 3.
-
+* **Infrastructure as Code (IaC):** Replaced manual resource creation with **Terraform** for reproducible, version-controlled environments.
+* **Database Automation:** Automated provisioning of **Azure SQL (Serverless)**, including firewall rules for secure service-to-service communication.
+* **Zero-Trust Security (OIDC):** Migrated to **OpenID Connect (OIDC)**. This enables passwordless, short-lived token exchange between GitHub Actions and Azure via Federated Credentials, eliminating long-lived secrets.
+* **Unified CI/CD:** A high-maturity **GitHub Actions** pipeline provisions the Azure infrastructure *before* building and deploying the application code in a single, seamless flow.
 
 ## 🛠 Tech Stack & Architecture
 
 ### **Frontend & Application**
-
-* **Framework:** Next.js 13 (Upgraded to **Node.js 22 LTS** for enhanced security and long-term support).
-
-
-* **UI Components:** React-Bootstrap, ApexCharts, and Feather Icons.
-
-
-* **Base Template:** [DashUI Next.js Free Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template) by Codescandy.
-
-
+* **Framework:** Next.js 13 (Node.js 22 LTS).
+* **Database Client:** `mssql` (Tedious) with secure parameterization and `String.raw` handling.
+* **UI Components:** React-Bootstrap, Feather Icons, and ApexCharts.
 
 ### **Cloud Infrastructure (Azure)**
-
 * **App Service:** Managed hosting environment for the Node.js application.
-
-
-* **App Service Plan:** Linux-based compute resource (F1 Tier).
-
-
-* **Storage Account:** Configured as a **Remote Terraform Backend** to maintain state integrity across team members.
-
-
+* **Azure SQL:** Modern, serverless SQL database with auto-pause for cost-optimization.
+* **Azure Key Vault:** Centralized secret storage. The application uses **Key Vault References** (`@Microsoft.KeyVault`) to pull secrets at runtime.
+* **Managed Identity:** Implemented **User-Assigned Managed Identity**. The App Service authenticates to Key Vault using its identity, fulfilling the "Zero-Trust" model.
 
 ## 🏗 DevOps Workflow
 
-### **1. Environment Bootstrapping**
+### **1. Environment Bootstrapping & Secret Sync**
+The management layer is initialized via a **Bash bootstrap script** (`setup.sh`). This script handles the "cold start" by:
+* Creating the Management Resource Group and **Remote Terraform Backend**.
+* Provisioning the **User-Assigned Managed Identity** for GitHub.
+* **GitHub CLI Integration:** Automatically pushes `AZURE_CLIENT_ID`, `TENANT_ID`, and `SUBSCRIPTION_ID` to GitHub Secrets and Variables using the GitHub CLI (`gh`).
+* **Identity Federation:** Configures the **OIDC Federated Credential** to authorize the GitHub repository.
 
-To ensure a clean and secure start in a new Azure subscription, the environment is initialized using a custom **Bash bootstrap script** (`setup.sh`). This script automates:
+### **2. Local Developer Experience (DX)**
+A custom **Discovery Script** (`setup-env.sh`) bridges the gap between cloud and local development:
+* **Automated Discovery:** Crawls the Azure Resource Group to find the SQL Server, DB Name, and Admin User.
+* **Identity-Based Fetch:** Securely fetches the latest password from Key Vault using the developer's local `az login` context.
+* **Zero-Error Formatting:** Automatically generates a clean `.env.local` file for the Next.js dev server.
 
-1. Creating the Management Resource Group.
-
-
-2. Provisioning the Storage Account and Container for the Terraform state.
-
-
-3. Generating the **Service Principal** with the "Contributor" role for automated access.
-
-
-
-### **2. Automated Deployment Pipeline**
-
-The `.github/workflows/devops-pipeline.yml` handles the full application lifecycle on every `git push` to the `main` branch:
-
-* **Infra Stage:** Runs `terraform apply` to create/update Azure resources.
-
-
-* **Build Stage:** Compiles the Next.js app using Node.js 22.
-
-
-* **Deploy Stage:** Securely packages the application and deploys it to the provisioned Azure Web App.
-
-
+### **3. Automated Deployment Pipeline**
+The `.github/workflows/pipeline.yml` handles the full lifecycle:
+* **Auth:** Logs in to Azure using OIDC (via `azure/login@v2`).
+* **Infra Stage:** `terraform apply` ensures the cloud state matches the code.
+* **Build & Deploy:** Compiles the app and deploys it to the provisioned Web App.
 
 ## 🏁 Step-by-Step Replication Guide
 
-Follow these steps to deploy the Zenith Health platform into your own Azure environment.
-
 ### **1. Prerequisites**
+* Active **Azure Subscription**.
+* **Azure CLI**, **Terraform**, **jq**, and **GitHub CLI (gh)** installed locally.
+* **Node.js 22 LTS**.
 
-* An active **Azure Subscription**.
-
-* **Azure CLI** and **Terraform** installed locally.
-
-* **Node.js 22 LTS** installed.
-
-
-
-### **2. Bootstrap the Infrastructure**
-
-Before running the automation, you must authenticate your terminal with Azure and ensure you are targeting the correct subscription (especially important if you are using a new account with free credits).
-
+### **2. Bootstrap the Cloud**
+First, ensure you are authenticated with both Azure and GitHub:
 ```bash
-# Log in to your Azure account
 az login
+gh auth login
 
-# (Optional) Set the specific subscription if you have multiple
-az account set --subscription "YOUR_SUBSCRIPTION_NAME_OR_ID"
-```
-
-Run the included `setup.sh` script to create the management layer in Azure. This creates the Storage Account for Terraform's state and a Service Principal for GitHub.
-
-```bash
 chmod +x setup.sh
 ./setup.sh
-
 ```
+*The script will provision the management group and push all necessary secrets to your GitHub repository automatically.*
 
-**Action:** Open the generated `azure-setup-output.txt` and copy the credentials. **Do not commit this file**.
-
-### **3. Configure GitHub Secrets**
-
-In your GitHub Repo, navigate to **Settings > Secrets and variables > Actions** and add the following with their respective values: 
-
-* `AZURE_CLIENT_ID`
-* `AZURE_TENANT_ID`
-* `AZURE_SUBSCRIPTION_ID`
-* `AZURE_CLIENT_SECRET`
-
-Then also add:
-
-* `AZURE_CREDENTIALS`: Paste the JSON below filled with their respective values:
-
-```json
-{
-  "clientId": "YOUR_CLIENT_ID",
-  "clientSecret": "YOUR_CLIENT_SECRET",
-  "subscriptionId": "YOUR_SUBSCRIPTION_ID",
-  "tenantId": "YOUR_TENANT_ID"
-}
+### **3. Initialize Local Environment**
+Once the infrastructure is live, sync your local machine to the cloud database:
+```bash
+chmod +x setup-env.sh
+./setup-env.sh
+npm run dev
 ```
-In your workflow:
-
-```yaml
-- name: Login to Azure
-  uses: azure/login@v2
-  with:
-    creds: ${{ secrets.AZURE_CREDENTIALS }}
-```
-
-The `creds` input is **how the Azure GitHub Action authenticates**. It expects a **JSON string** that contains your Service Principal credentials. Without it, the workflow **cannot log in to Azure**, so every subsequent deployment step will fail.
-
-> 🔒 This keeps your credentials secure — they are **masked in GitHub logs** and not stored in your code.
----
-
-### **4. Initialize Terraform Backend**
-
-Update the `backend "azurerm"` block in your `terraform/providers.tf` configuration with the `storage_account_name` provided in your setup output.
-
-### **5. Deploy**
-
-Simply push your changes to the `main` branch. The GitHub Action will automatically initialize Terraform, build the application (Node 22), and deploy it to your new Azure environment.
 
 ## 🔐 Security & Compliance
-
-In alignment with health-tech security standards:
-
-* **State Locking:** Remote state storage prevents concurrent configuration changes.
-
-
-* **Identity Management:** Automated deployments use a dedicated Service Principal, following the principle of **Least Privilege**.
-
-
-* **Secret Masking:** All sensitive values (Subscription IDs, Client Secrets) are stored in **GitHub Actions Secrets**.
-
+* **Passwordless Pipeline:** OIDC removes the need for `AZURE_CLIENT_SECRET`.
+* **Least Privilege:** Management identities are restricted to the "Contributor" role at the subscription scope.
+* **Secret Masking:** Sensitive values are stored in **GitHub Actions Secrets** and **Azure Key Vault**.
 
 ---
 
 ## 📜 Credits & Acknowledgments
+* **UI Base:** [DashUI Next.js Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template).
+* **Architect:** **Temitope Olayinka** — Refactored for Enterprise Cloud Automation.
 
-* **UI Base:** This project utilizes the [DashUI Next.js Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template) by Codescandy.
-
-
-* **DevOps Architect:** Adapted and "Enterprise-ified" by **Temitope Olayinka** as part of a specialized Cloud & DevOps engineering portfolio.
+---

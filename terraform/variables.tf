@@ -33,3 +33,9 @@ variable "storage_account_name" {
   description = "The name of the storage account for Terraform state"
   default     = "zenithtfstate1773664450"
 }
+
+variable "sql_admin_username" {
+  type        = string
+  description = "The admin username for the SQL Server"
+  default     = "sqladminuser"
+}
