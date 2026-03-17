@@ -11,17 +11,8 @@ terraform {
     }
   }
 
-  backend "azurerm" {}
 }
 
-provider "azurerm" {
-  features {
-    key_vault {
-      purge_soft_delete_on_destroy    = true
-      recover_soft_deleted_key_vaults = true
-    }
-  }
-}
 
 # 0. Helper for unique naming
 resource "random_id" "server_suffix" {
