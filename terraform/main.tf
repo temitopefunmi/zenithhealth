@@ -69,8 +69,17 @@ resource "azurerm_mssql_database" "sql_database" {
   collation    = "SQL_Latin1_General_CP1_CI_AS"
   sku_name     = "GP_S_Gen5_1" 
   
-  auto_pause_delay_in_minutes = 60 
-  min_capacity                = 0.5
+  auto_pause_delay_in_minutes = 15 # Auto-pause after 15 minutes of inactivity 
+  min_capacity                = 0.5 # Minimum vCores when active (0.5 vCore)
+  max_size_gb = 2 # Max size of 2 GB to keep costs low during development/testing
+
+  lifecycle {
+    ignore_changes = [ 
+      # If you click "Apply Free Offer" in the portal, 
+      # this prevents Terraform from trying to "undo" it. 
+      sku_name
+     ]
+  }
 }
 
 # 8. Firewall Rule
@@ -92,10 +101,12 @@ resource "azurerm_service_plan" "asp" {
 
 # 10. Web App
 resource "azurerm_linux_web_app" "web_app" {
+  depends_on = [ azurerm_application_insights.app_insights ]
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   service_plan_id     = azurerm_service_plan.asp.id
+  https_only = true
 
   identity {
     type = "SystemAssigned"
@@ -104,24 +115,40 @@ resource "azurerm_linux_web_app" "web_app" {
   site_config {
     always_on = false
     app_command_line = "node server.js"
+    minimum_tls_version = "1.2"
     application_stack {
       node_version = "22-lts"
     }
   }
+  logs {
+    application_logs {
+      file_system_level = "Information"
+    }
+    http_logs {
+      file_system {
+        retention_in_days = 7
+        retention_in_mb   = 35
+      }
+    }
+  }
+  
 
   app_settings = {
     "WEBSITE_PORT"             = "8080"
     "NODE_ENV"                 = "production"
     "WEBSITE_RUN_FROM_PACKAGE" = "1"
-    
+
+    # Individual keys that match your lib/db.js process.env calls
+    "DB_SERVER"    = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    "DB_NAME"      = azurerm_mssql_database.sql_database.name
+    "DB_USER"      = azurerm_mssql_server.sql_server.administrator_login
     # 🔐 Secure Key Vault References
     # Using 'versionless_id' ensures Azure always pulls the latest password 
     # even if you rotate it later.
     "DB_PASSWORD"  = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_password_secret.versionless_id})"
-    
-    # The Full Connection String
-    # DB_PASSWORD reference inside the connection string
-    "DATABASE_URL" = "Server=tcp:${azurerm_mssql_server.sql_server.fully_qualified_domain_name},1433;Initial Catalog=${azurerm_mssql_database.sql_database.name};User ID=${azurerm_mssql_server.sql_server.administrator_login};Password=@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_password_secret.versionless_id});Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
+    "ApplicationInsightsAgent_EXTENSION_VERSION" = "~3"
+    "XDT_MicrosoftApplicationInsights_NodeJS" = "1"
   }
   # Prevent Terraform from flapping on minor Node version differences
   lifecycle {
@@ -149,3 +176,21 @@ resource "azurerm_key_vault_access_policy" "web_app_access" {
   ]
   depends_on = [ azurerm_linux_web_app.web_app ]
 }
+
+# 12. The Workspace where logs are stored
+resource "azurerm_log_analytics_workspace" "log_workspace" {
+  name                = "log-${var.app_name}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+}
+
+# 13. The Application Insights instance
+resource "azurerm_application_insights" "app_insights" {
+  name                = "ai-${var.app_name}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  application_type     = "Node.JS"
+  workspace_id        = azurerm_log_analytics_workspace.log_workspace.id
+}
+

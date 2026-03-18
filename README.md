@@ -79,6 +79,51 @@ npm run dev
 
 ---
 
+### 📉 Cost Optimization & Sustainability
+In a production health-tech environment, data must be available, but costs must be controlled. This project implements several **FinOps** (Cloud Financial Management) strategies:
+
+* **SQL Serverless Compute:** Utilizes the **General Purpose: Serverless** tier with an **Auto-Pause** delay. This ensures the database "sleeps" during inactive periods, reducing compute costs to $0.
+* **Storage Capping:** Explicitly limits SQL storage to **2GB** (down from the 32GB default) to minimize monthly Data-at-Rest charges.
+* **App Service F1 Tier:** Leverages the Free shared compute tier for dev/test environments to maintain a zero-dollar baseline for application hosting.
+* **Resource Lifecycle Management:** Terraform is configured to ignore manual "Free Offer" toggles in the Azure Portal, allowing for hybrid cost-saving measures without configuration drift.
+
+---
+
+### 🛠 The "Wallet-Friendly" `main.tf` Update
+To make sure Terraform respects your cost-saving measures, update your `azurerm_mssql_database` block like this:
+
+```hcl
+resource "azurerm_mssql_database" "sql_database" {
+  name           = "db-${var.app_name}"
+  server_id      = azurerm_mssql_server.sql_server.id
+  collation      = "SQL_Latin1_General_CP1_CI_AS"
+  sku_name       = "GP_S_Gen5_1" # Serverless Gen5
+  
+  # 📉 Cost-Saving Configurations
+  auto_pause_delay_in_minutes = 15   # Minimum allowed for maximum savings
+  min_capacity                = 0.5  # Lowest possible compute floor
+  max_size_gb                 = 2    # Prevents paying for unused disk space
+
+  lifecycle {
+    ignore_changes = [
+      # If you click "Apply Free Offer" in the portal, 
+      # this prevents Terraform from trying to "undo" it.
+      requested_service_objective_name, 
+      sku_name
+    ]
+  }
+}
+```
+
+
+
+### 💡 One Last Pro-Tip
+When you are done for the day, **stop your Web App** using the Azure CLI. Even if the SQL database is paused, the Web App might occasionally try to "ping" it to check health, which wakes the database up and starts the 15-minute billing timer again.
+
+```bash
+az webapp stop --name <your-app-name> --resource-group <your-rg>
+```
+
 ## 📜 Credits & Acknowledgments
 * **UI Base:** [DashUI Next.js Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template).
 * **Architect:** **Temitope Olayinka** — Refactored for Enterprise Cloud Automation.
