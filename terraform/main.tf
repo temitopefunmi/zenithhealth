@@ -66,20 +66,7 @@ resource "azurerm_mssql_server" "sql_server" {
 resource "azurerm_mssql_database" "sql_database" {
   name         = "db-${var.app_name}"
   server_id    = azurerm_mssql_server.sql_server.id
-  collation    = "SQL_Latin1_General_CP1_CI_AS"
-  sku_name     = "GP_S_Gen5_1" 
-  
-  auto_pause_delay_in_minutes = 15 # Auto-pause after 15 minutes of inactivity 
-  min_capacity                = 0.5 # Minimum vCores when active (0.5 vCore)
-  max_size_gb = 2 # Max size of 2 GB to keep costs low during development/testing
-
-  lifecycle {
-    ignore_changes = [ 
-      # If you click "Apply Free Offer" in the portal, 
-      # this prevents Terraform from trying to "undo" it. 
-      sku_name
-     ]
-  }
+  sku_name     = "Basic"
 }
 
 # 8. Firewall Rule
