@@ -43,6 +43,9 @@ resource "random_password" "sql_admin_password" {
   length           = 16
   special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # 5. Store Password in Key Vault
@@ -50,6 +53,9 @@ resource "azurerm_key_vault_secret" "sql_password_secret" {
   name         = "sql-admin-password"
   value        = random_password.sql_admin_password.result
   key_vault_id = azurerm_key_vault.kv.id
+  lifecycle {
+    ignore_changes = [ value ]
+  }
 }
 
 # 6. Modern SQL Server
