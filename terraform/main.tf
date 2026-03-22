@@ -63,11 +63,19 @@ resource "azurerm_mssql_server" "sql_server" {
 }
 
 # 7. Modern SQL Database (Serverless)
-resource "azurerm_mssql_database" "sql_database" {
-  name         = "db-${var.app_name}"
-  server_id    = azurerm_mssql_server.sql_server.id
-  sku_name     = "Basic"
+resource "azurerm_resource_group_template_deployment" "sql_database" {
+  name               = "sql-database-deployment"
+  resource_group_name = azurerm_resource_group.rg.name
+  deployment_mode     = "Incremental"
+  # This file was created by the "az bicep build" step in GitHub Actions
+  template_content    = file("${path.module}/sql_db.json")
+  parameters_content = jsonencode({
+    databaseName = { value: "db-${var.app_name}" }
+    serverName   = { value: azurerm_mssql_server.sql_server.name }
+    location     = { value: azurerm_resource_group.rg.location }
+  })
 }
+
 
 # 8. Firewall Rule
 resource "azurerm_mssql_firewall_rule" "allow_azure_services" {
@@ -127,7 +135,7 @@ resource "azurerm_linux_web_app" "web_app" {
 
     # Individual keys that match your lib/db.js process.env calls
     "DB_SERVER"    = azurerm_mssql_server.sql_server.fully_qualified_domain_name
-    "DB_NAME"      = azurerm_mssql_database.sql_database.name
+    "DB_NAME"      = "db-${var.app_name}"
     "DB_USER"      = azurerm_mssql_server.sql_server.administrator_login
     # 🔐 Secure Key Vault References
     # Using 'versionless_id' ensures Azure always pulls the latest password 

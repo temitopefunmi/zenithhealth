@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 1. Config - The only thing you need to provide
-RG_NAME="rg-Zenith"
+RG_NAME="rg-ZenithHealth"
 
 echo "🔍 Discovering infrastructure in $RG_NAME..."
 

@@ -40,6 +40,10 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # 2️⃣ INFRASTRUCTURE
+      # Compile Bicep to JSON so Terraform can find it
+      - name: Compile Bicep
+        run: az bicep build --file ./scripts/sql_db.bicep --outfile ./terraform/sql_db.json
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
