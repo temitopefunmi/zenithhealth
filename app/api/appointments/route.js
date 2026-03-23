@@ -23,7 +23,8 @@ export async function POST(request) {
 
         // Securely insert using parameters to prevent SQL injection
         await executeQuery(
-            'INSERT INTO Appointments (patient, doctor) VALUES (@patient, @doctor)',
+            `INSERT INTO Appointments (patientName, doctor, appointmentDate, status)
+            VALUES (@patient, @doctor, GETDATE(), 'Scheduled')`,
             { patient, doctor }
         );
 
