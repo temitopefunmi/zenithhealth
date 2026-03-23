@@ -9,7 +9,7 @@ resource "random_id" "server_suffix" {
 # 1. Get details about the current logged-in identity (The GitHub Runner)
 data "azurerm_client_config" "current" {}
 
-# 2. Resource Group
+# 2. Resource Group Configuration
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location

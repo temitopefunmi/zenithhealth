@@ -2,6 +2,21 @@
 import { useState, useEffect } from 'react';
 import { Col, Card, Table } from 'react-bootstrap';
 
+// Helper for the Status Badge color-coding
+const StatusBadge = ({ status }) => {
+    const variants = {
+        'Scheduled': 'info',
+        'Confirmed': 'success',
+        'Cancelled': 'danger',
+        'Pending': 'warning'
+    };
+    return (
+        <Badge bg={variants[status] || 'secondary'} className="px-2 py-1">
+            {status || 'Scheduled'}
+        </Badge>
+    );
+};
+
 // Add { refreshKey } here to receive the prop from page.js
 const ActiveProjects = ({ refreshKey }) => { 
     const [appointments, setAppointments] = useState([]);
@@ -33,6 +48,7 @@ const ActiveProjects = ({ refreshKey }) => {
                             <th>Patient</th>
                             <th>Doctor</th>
                             <th>Date</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,9 +57,10 @@ const ActiveProjects = ({ refreshKey }) => {
                         ) : (
                             appointments.map((item, idx) => (
                                 <tr key={idx}>
-                                    <td>{item.patient}</td>
+                                    <td>{item.patientName}</td>
                                     <td>{item.doctor}</td>
                                     <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                                    <td><StatusBadge status={item.status} /></td>
                                 </tr>
                             ))
                         )}
