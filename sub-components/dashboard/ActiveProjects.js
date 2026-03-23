@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { Col, Card, Table } from 'react-bootstrap';
+import { Col, Card, Table, Badge } from 'react-bootstrap';
 
 // Helper for the Status Badge color-coding
 const StatusBadge = ({ status }) => {
@@ -53,7 +53,7 @@ const ActiveProjects = ({ refreshKey }) => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="3" className="text-center">Loading...</td></tr>
+                            <tr><td colSpan="4" className="text-center">Loading...</td></tr>
                         ) : (
                             appointments.map((item, idx) => (
                                 <tr key={idx}>
