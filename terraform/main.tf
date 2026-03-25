@@ -135,7 +135,7 @@ resource "azurerm_key_vault_secret" "openai_key" {
 
 # 13. Web App (Modified to include AI settings)
 resource "azurerm_linux_web_app" "web_app" {
-  depends_on          = [ azurerm_application_insights.app_insights, azurerm_key_vault_access_policy.web_app_access ]
+  depends_on          = [ azurerm_application_insights.app_insights ]
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
