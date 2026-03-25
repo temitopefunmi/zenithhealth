@@ -1,11 +1,16 @@
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
+import { AzureOpenAI } from "openai";
 import { NextResponse } from 'next/server';
 
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_OPENAI_API_KEY;
 const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
 
-const client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey));
+const client = new AzureOpenAI({
+    endpoint: endpoint,
+    apiKey: apiKey,
+    apiVersion: "2024-05-01-preview", // Standard API version for GPT-4o
+    deployment: deploymentName,
+});
 
 export async function POST(req) {
     try {
@@ -34,11 +39,11 @@ export async function POST(req) {
             }
         ];
 
-        const result = await client.getChatCompletions(deploymentName, messages, {
-            // responseFormat requires at least version 2023-12-01-preview or newer
-            responseFormat: { type: "json_object" } 
+        const result = await client.chat.completions.create({
+            messages: messages,
+            model: "", // Leave empty for Azure as it uses the 'deployment' from constructor
+            response_format: { type: "json_object" }
         });
-
         const aiResponse = JSON.parse(result.choices[0].message.content);
         
         // Return the structured data to the AICommandBar.js
