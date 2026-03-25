@@ -100,14 +100,47 @@ resource "azurerm_service_plan" "asp" {
   sku_name            = "F1"
 }
 
-# 10. Web App
+# 10. Azure OpenAI Service
+resource "azurerm_cognitive_account" "openai" {
+  name                = "cog-zh-${random_id.server_suffix.hex}"
+  location            = "eastus" # Ensure OpenAI is available in your region
+  resource_group_name = azurerm_resource_group.rg.name
+  kind                = "OpenAI"
+  sku_name            = "S0"
+  
+  # Required for Managed Identity access to Cognitive Services
+  custom_subdomain_name = "zenith-ai-${random_id.server_suffix.hex}"
+}
+
+# 11. OpenAI Model Deployment (GPT-4o)
+resource "azurerm_cognitive_deployment" "gpt4o" {
+  name                 = "gpt-4o"
+  cognitive_account_id = azurerm_cognitive_account.openai.id
+  model {
+    format  = "OpenAI"
+    name    = "gpt-4o"
+    version = "2024-05-13"
+  }
+  sku {
+    name = "Standard"
+  }
+}
+
+# 12. Store AI Key in Key Vault
+resource "azurerm_key_vault_secret" "openai_key" {
+  name         = "azure-openai-key"
+  value        = azurerm_cognitive_account.openai.primary_access_key
+  key_vault_id = azurerm_key_vault.kv.id
+}
+
+# 13. Web App (Modified to include AI settings)
 resource "azurerm_linux_web_app" "web_app" {
-  depends_on = [ azurerm_application_insights.app_insights ]
+  depends_on          = [ azurerm_application_insights.app_insights, azurerm_key_vault_access_policy.web_app_access ]
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   service_plan_id     = azurerm_service_plan.asp.id
-  https_only = true
+  https_only          = true
 
   identity {
     type = "SystemAssigned"
@@ -121,53 +154,35 @@ resource "azurerm_linux_web_app" "web_app" {
       node_version = "22-lts"
     }
   }
-  logs {
-    application_logs {
-      file_system_level = "Information"
-    }
-    http_logs {
-      file_system {
-        retention_in_days = 7
-        retention_in_mb   = 35
-      }
-    }
-  }
-  
 
   app_settings = {
     "WEBSITE_PORT"             = "8080"
     "NODE_ENV"                 = "production"
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
-
-    # Individual keys that match your lib/db.js process.env calls
+    
+    # SQL Settings
     "DB_SERVER"    = azurerm_mssql_server.sql_server.fully_qualified_domain_name
     "DB_NAME"      = "db-${var.app_name}"
     "DB_USER"      = azurerm_mssql_server.sql_server.administrator_login
-    # 🔐 Secure Key Vault References
-    # Using 'versionless_id' ensures Azure always pulls the latest password 
-    # even if you rotate it later.
     "DB_PASSWORD"  = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_password_secret.versionless_id})"
+
+    # AZURE AI SETTINGS
+    "AZURE_OPENAI_ENDPOINT"        = azurerm_cognitive_account.openai.endpoint
+    "AZURE_OPENAI_DEPLOYMENT_NAME" = azurerm_cognitive_deployment.gpt4o.name
+    # Secure Key Vault Reference for AI Key
+    "AZURE_OPENAI_API_KEY"         = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.openai_key.versionless_id})"
+
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
-    "ApplicationInsightsAgent_EXTENSION_VERSION" = "~3"
-    "XDT_MicrosoftApplicationInsights_NodeJS" = "1"
   }
-  # Prevent Terraform from flapping on minor Node version differences
-  lifecycle {
-    ignore_changes = [
-      site_config[0].application_stack[0].node_version
-    ]
-  }
- 
 }
 
-# Fetch the Web App identity after creation
+# 14. Fetch the Web App identity after creation
 data "azurerm_linux_web_app" "web_app" {
   name                = azurerm_linux_web_app.web_app.name
   resource_group_name = azurerm_linux_web_app.web_app.resource_group_name
   depends_on         = [ azurerm_linux_web_app.web_app ]
 }
 
-# 11. Create access policy for the Web App's Managed Identity to read secrets from Key Vault
+# 15. Create access policy for the Web App's Managed Identity to read secrets from Key Vault
 resource "azurerm_key_vault_access_policy" "web_app_access" {
   key_vault_id = azurerm_key_vault.kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
@@ -178,7 +193,7 @@ resource "azurerm_key_vault_access_policy" "web_app_access" {
   depends_on = [ azurerm_linux_web_app.web_app ]
 }
 
-# 12. The Workspace where logs are stored
+# 16. The Workspace where logs are stored
 resource "azurerm_log_analytics_workspace" "log_workspace" {
   name                = "log-${var.app_name}"
   location            = azurerm_resource_group.rg.location
@@ -186,7 +201,7 @@ resource "azurerm_log_analytics_workspace" "log_workspace" {
   sku                 = "PerGB2018"
 }
 
-# 13. The Application Insights instance
+# 17. The Application Insights instance
 resource "azurerm_application_insights" "app_insights" {
   name                = "ai-${var.app_name}"
   location            = azurerm_resource_group.rg.location
