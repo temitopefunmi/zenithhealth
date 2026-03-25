@@ -1,52 +1,51 @@
 import { AzureOpenAI } from "openai";
 import { NextResponse } from 'next/server';
 
-const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const apiKey = process.env.AZURE_OPENAI_API_KEY;
-const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-const client = new AzureOpenAI({
-    endpoint: endpoint,
-    apiKey: apiKey,
-    apiVersion: "2024-05-01-preview", // Standard API version for GPT-4o
-    deployment: deploymentName,
-});
+// 1. Tell Next.js this MUST be a server-side runtime (fixes "Collecting page data" error)
+export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
     try {
+        // 2. Move initialization INSIDE the POST function
+        const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+        const apiKey = process.env.AZURE_OPENAI_API_KEY;
+        const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
+
+        // Safety check for production logs
+        if (!apiKey || !endpoint) {
+            console.error("Missing Azure OpenAI Credentials");
+            return NextResponse.json({ error: "Configuration Error" }, { status: 500 });
+        }
+
+        const client = new AzureOpenAI({
+            endpoint: endpoint,
+            apiKey: apiKey,
+            apiVersion: "2024-05-01-preview", 
+            deployment: deploymentName,
+        });
+
         const { text } = await req.json();
-        
-        // Get actual date for relative calculations (tomorrow, next week, etc.)
         const currentDateTime = new Date().toISOString();
 
         const messages = [
             { 
                 role: "system", 
-                content: `You are a clinical administrative assistant. Today's date is ${currentDateTime}. Extract appointment details into JSON. Convert relative dates (like 'tomorrow' or 'next Tuesday') into absolute ISO 8601 strings.` 
+                content: `You are a clinical administrative assistant. Today's date is ${currentDateTime}. Extract appointment details into JSON. Convert relative dates into absolute ISO 8601 strings.` 
             },
             { 
                 role: "user", 
-                content: `Extract the following details from this request: "${text}". 
-                
-                Return ONLY a JSON object with these EXACT keys:
-                - patientName
-                - doctor
-                - appointmentDate (ISO 8601 format)
-                - priority (Low, Medium, High, Urgent)
-                - reasoning (A brief clinical justification for the priority)
-                
-                If a year isn't specified, assume the current or upcoming year.` 
+                content: `Extract from: "${text}". 
+                Return ONLY a JSON object with: patientName, doctor, appointmentDate (ISO 8601), priority (Low, Medium, High, Urgent), reasoning.` 
             }
         ];
 
         const result = await client.chat.completions.create({
             messages: messages,
-            model: "", // Leave empty for Azure as it uses the 'deployment' from constructor
+            model: "", 
             response_format: { type: "json_object" }
         });
+
         const aiResponse = JSON.parse(result.choices[0].message.content);
-        
-        // Return the structured data to the AICommandBar.js
         return NextResponse.json(aiResponse);
         
     } catch (error) {

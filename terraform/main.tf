@@ -133,7 +133,7 @@ resource "azurerm_key_vault_secret" "openai_key" {
   key_vault_id = azurerm_key_vault.kv.id
 }
 
-# 13. Web App (includes AI settings)
+# 13. Web App (Modified to include AI settings)
 resource "azurerm_linux_web_app" "web_app" {
   depends_on          = [ azurerm_application_insights.app_insights ]
   name                = var.app_name
