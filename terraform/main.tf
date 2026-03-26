@@ -15,7 +15,7 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
-# 3. Azure Key Vault Config
+# 3. Azure Key Vault for storing secrets securely (SQL password, OpenAI key)
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-zh-${random_id.server_suffix.hex}"
   location                    = azurerm_resource_group.rg.location
