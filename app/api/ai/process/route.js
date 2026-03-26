@@ -30,7 +30,9 @@ export async function POST(req) {
         const messages = [
             { 
                 role: "system", 
-                content: `You are a clinical administrative assistant. Today's date is ${currentDateTime}. Extract appointment details into JSON. Convert relative dates into absolute ISO 8601 strings.` 
+                content: `You are a clinical administrative assistant. Today's date is ${currentDateTime}. 
+                Extract appointment details into JSON. 
+                CRITICAL: If the user uses relative terms like 'tomorrow', 'next week', or 'at 2pm', calculate the EXACT ISO 8601 timestamp based on the server time provided.` 
             },
             { 
                 role: "user", 

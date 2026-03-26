@@ -15,7 +15,7 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
-# 3. Azure Key Vault
+# 3. Azure Key Vault Config
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-zh-${random_id.server_suffix.hex}"
   location                    = azurerm_resource_group.rg.location

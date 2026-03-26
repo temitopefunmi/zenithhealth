@@ -32,6 +32,7 @@ const AICommandBar = ({ onDraftCreated }) => {
             body: JSON.stringify({
                 patient: preview.patientName,
                 doctor: preview.doctor,
+                appointmentDate: data.appointmentDate,
                 priority: preview.priority,
                 notes: preview.reasoning,
                 isVerified: 0 // Explicitly save as unverified draft
@@ -71,6 +72,7 @@ const AICommandBar = ({ onDraftCreated }) => {
                         <ul className="mb-2 mt-2">
                             <li>Patient: {preview.patientName}</li>
                             <li>Doctor: {preview.doctor}</li>
+                            <li><strong>Date/Time:</strong> {new Date(analysis.appointmentDate).toLocaleString()}</li>
                             <li>Priority: <span className="text-danger font-weight-bold">{preview.priority}</span></li>
                         </ul>
                         <p className="small mb-2 italic">Reasoning: {preview.reasoning}</p>
