@@ -112,14 +112,14 @@ resource "azurerm_cognitive_account" "openai" {
   custom_subdomain_name = "zenith-ai-${random_id.server_suffix.hex}"
 }
 
-# 11. OpenAI Model Deployment (GPT-4o)
-resource "azurerm_cognitive_deployment" "gpt4o" {
-  name                 = "gpt-4o"
+# 11. OpenAI Model Deployment 
+resource "azurerm_cognitive_deployment" "ai-scheduler" {
+  name                 = "ai-scheduler"
   cognitive_account_id = azurerm_cognitive_account.openai.id
   model {
     format  = "OpenAI"
-    name    = "gpt-4o"
-    version = "2024-05-13"
+    name    = "gpt-4.1-mini"
+    version = "2025-04-14"
   }
   sku {
     name = "Standard"
@@ -167,7 +167,7 @@ resource "azurerm_linux_web_app" "web_app" {
 
     # AZURE AI SETTINGS
     "AZURE_OPENAI_ENDPOINT"        = azurerm_cognitive_account.openai.endpoint
-    "AZURE_OPENAI_DEPLOYMENT_NAME" = azurerm_cognitive_deployment.gpt4o.name
+    "AZURE_OPENAI_DEPLOYMENT_NAME" = azurerm_cognitive_deployment.ai-scheduler.name
     # Secure Key Vault Reference for AI Key
     "AZURE_OPENAI_API_KEY"         = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.openai_key.versionless_id})"
 
