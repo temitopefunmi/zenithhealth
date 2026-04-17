@@ -26,6 +26,9 @@ const ActiveProjects = ({ refreshKey, userRole }) => {
 
     // 2. Clinical Verification Logic (Doctor Action)
     const handleVerify = async (id) => {
+        // Added Safety Check
+        if (!window.confirm("Are you sure you want to approve this appointment?")) return;
+
         try {
             const res = await fetch('/api/appointments', {
                 method: 'PATCH',
@@ -69,7 +72,14 @@ const ActiveProjects = ({ refreshKey, userRole }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
+                        {appointments.length === 0 && !loading ? (
+                            <tr>
+                                <td colSpan={userRole === 'doctor' ? 6 : 5} className="text-center py-5 text-muted">
+                                    <div className="mb-2">📅</div>
+                                    No appointments in the queue.
+                                </td>
+                            </tr>
+                        ) : loading ? (
                             <tr>
                                 <td colSpan={userRole === 'doctor' ? 6 : 5} className="text-center py-5">
                                     <Spinner animation="border" variant="primary" size="sm" className="me-2" />
@@ -108,7 +118,7 @@ const ActiveProjects = ({ refreshKey, userRole }) => {
 
                                     <td className="align-middle">
                                         <Badge bg={item.isVerified ? 'success' : 'outline-primary'} className="px-2">
-                                            {item.isVerified ? 'Verified' : 'AI Draft'}
+                                            {item.status || 'Pending'}
                                         </Badge>
                                     </td>
 
@@ -124,7 +134,7 @@ const ActiveProjects = ({ refreshKey, userRole }) => {
                                                     Approve
                                                 </Button>
                                             ) : (
-                                                <span className="text-muted small">Confirmed</span>
+                                                <span className="text-muted small">Approved</span>
                                             )}
                                         </td>
                                     )}
