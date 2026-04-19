@@ -90,12 +90,12 @@ jobs:
             -backend-config="resource_group_name=rg-zenith-mgmt" \
             -backend-config="key=terraform.tfstate"
       
-      - name : Terraform Plan
+      - name: Terraform Plan
         working-directory: ./terraform
         run: |
           terraform plan -out=tfplan 
 
-      -name: Terraform Apply
+      - name: Terraform Apply
         working-directory: ./terraform
         run: |
           terraform apply tfplan
