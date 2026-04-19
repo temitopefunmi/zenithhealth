@@ -23,3 +23,22 @@ jobs:
         run: |
           npm ci --legacy-peer-deps
           npm run build
+
+      - name: Prepare Deploy Package
+        run: |
+          mkdir -p deploy_staging
+          cp -r .next/standalone/. ./deploy_staging/
+          cp -r public ./deploy_staging/public || true
+          mkdir -p ./deploy_staging/.next
+          cp -r .next/static ./deploy_staging/.next/static
+
+      - name: Create Package
+        run: |
+          cd deploy_staging
+          zip -r ../deploy.zip .
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: deploy.zip
