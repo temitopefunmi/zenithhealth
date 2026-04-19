@@ -3,6 +3,12 @@
 
 **Zenith Health** is a sophisticated health-tech admin dashboard designed for clinical data management and operational oversight. This project represents a strategic evolution from manual "Click-Ops" cloud management to a fully automated, enterprise-grade **DevOps** lifecycle.
 
+## Why this project exists
+
+Zenith Health is my hands-on learning ground for building more realistic cloud-native health-tech workflows.
+
+I use this project to move beyond tutorials and apply Azure, DevOps, and AI concepts in a practical system that keeps evolving as I learn. The goal is not to present this as a finished clinical production system, but as a portfolio project that shows how I think through architecture, tradeoffs, debugging, and product workflow design.
+
 ## 🚀 Project Evolution: From Click-Ops to DevOps
 
 This repository originally started as a manual deployment and has since been refactored to implement professional engineering standards:
@@ -24,6 +30,17 @@ This repository originally started as a manual deployment and has since been ref
 * **Azure SQL:** Modern, serverless SQL database with auto-pause for cost-optimization.
 * **Azure Key Vault:** Centralized secret storage. The application uses **Key Vault References** (`@Microsoft.KeyVault`) to pull secrets at runtime.
 * **Managed Identity:** Implemented **User-Assigned Managed Identity**. The App Service authenticates to Key Vault using its identity, fulfilling the "Zero-Trust" model.
+
+## Current Application Workflow
+
+The current appointment workflow looks like this:
+
+1. A receptionist enters a free-text booking request
+2. Azure OpenAI extracts appointment details such as patient, doctor, date/time, and priority
+3. The system creates a draft appointment
+4. A doctor reviews the AI reasoning before confirming the appointment
+
+This keeps AI in an assistive role instead of allowing blind automation.
 
 ## 🏗 DevOps Workflow
 
@@ -89,33 +106,15 @@ In a production health-tech environment, data must be available, but costs must 
 
 ---
 
-### 🛠 The "Wallet-Friendly" `main.tf` Update
-To make sure Terraform respects your cost-saving measures, update your `azurerm_mssql_database` block like this:
+### 🛠 How the SQL Database Is Provisioned
 
-```hcl
-resource "azurerm_mssql_database" "sql_database" {
-  name           = "db-${var.app_name}"
-  server_id      = azurerm_mssql_server.sql_server.id
-  collation      = "SQL_Latin1_General_CP1_CI_AS"
-  sku_name       = "GP_S_Gen5_1" # Serverless Gen5
-  
-  # 📉 Cost-Saving Configurations
-  auto_pause_delay_in_minutes = 15   # Minimum allowed for maximum savings
-  min_capacity                = 0.5  # Lowest possible compute floor
-  max_size_gb                 = 2    # Prevents paying for unused disk space
+In the current version of Zenith Health, the SQL database is not created directly with an `azurerm_mssql_database` resource.
 
-  lifecycle {
-    ignore_changes = [
-      # If you click "Apply Free Offer" in the portal, 
-      # this prevents Terraform from trying to "undo" it.
-      requested_service_objective_name, 
-      sku_name
-    ]
-  }
-}
-```
+Instead, Terraform deploys the database through a Bicep/ARM template deployment.
 
+This approach was used because the SQL database configuration eventually moved beyond the simpler direct Terraform resource approach, and the Bicep deployment gave me more flexibility in how the serverless SQL database was defined and deployed.
 
+The Bicep file is compiled during the GitHub Actions pipeline before Terraform runs, so Terraform can still manage the overall deployment flow while the SQL database definition lives in the generated ARM template.
 
 ### 💡 One Last Pro-Tip
 When you are done for the day, **stop your Web App** using the Azure CLI. Even if the SQL database is paused, the Web App might occasionally try to "ping" it to check health, which wakes the database up and starts the 15-minute billing timer again.
@@ -123,6 +122,25 @@ When you are done for the day, **stop your Web App** using the Azure CLI. Even i
 ```bash
 az webapp stop --name <your-app-name> --resource-group <your-rg>
 ```
+## Current Limitations / In Progress
+
+This project is still evolving, and there are some known areas being improved:
+
+- Full server-enforced authentication and role-based access control are not yet complete
+- AI input/output validation can still be strengthened further
+- Some schema management shortcuts used for rapid iteration should move toward cleaner migrations
+- Some template-derived structure/components are still being cleaned up
+- Production hardening is still in progress
+
+## Recent Engineering Lessons
+
+A few of the practical issues this project has helped me work through:
+
+- Azure SQL cold starts and retry handling
+- stale connection pool recovery after failed database wake-ups
+- Azure OpenAI model deprecations and the need for stable deployment naming
+- designing AI-assisted workflows with human review instead of blind automation
+- balancing portfolio speed with cleaner architecture over time
 
 ## 📜 Credits & Acknowledgments
 * **UI Base:** [DashUI Next.js Admin Template](https://github.com/codescandy/dashui-free-nextjs-admin-template).

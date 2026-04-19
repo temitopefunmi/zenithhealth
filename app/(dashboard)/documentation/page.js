@@ -1,8 +1,6 @@
-'use client'
+'use client';
 
-import Link from 'next/link';
-// import node module libraries
-import { Card, Col, Row, Container } from 'react-bootstrap';
+import { Card, Col, Row, Container, Badge } from 'react-bootstrap';
 
 const Documentation = () => {
   return (
@@ -11,174 +9,119 @@ const Documentation = () => {
         <Col lg={12} md={12} sm={12}>
           <div className="border-bottom pb-4 mb-4 d-md-flex justify-content-between align-items-center">
             <div className="mb-3 mb-md-0">
-              <h1 className="mb-0 h2 fw-bold">Dash UI NextJS</h1>
-              <p className="mb-0">
-                Welcome to the Dash UI NextJS version of the original Dash UI theme.
+              <h1 className="mb-0 h2 fw-bold">Zenith Health Project Overview</h1>
+              <p className="mb-0 text-muted">
+                A cloud-native health-tech admin dashboard built on Azure, with an
+                AI-assisted appointment intake workflow.
               </p>
             </div>
           </div>
         </Col>
       </Row>
+
       <Row>
-        <Col lg={7} md={12} sm={12}>
-          <Card>
+        <Col lg={8} md={12} sm={12}>
+          <Card className="mb-4 shadow-sm border-0">
             <Card.Body>
-              <h2 className="fw-bold">Getting Started</h2>
-              <p className="lead">
-                A professional Dash UI NextJS Kit that comes with plenty of
-                ready-to-use components that will help you to build more
-                beautiful application (web app).
-              </p>
-
+              <h2 className="fw-bold mb-3">What Zenith Health Is</h2>
               <p>
-                Dash UI Kit is built with the most popular front-end framework{' '}
-                <a
-                  href="https://react-bootstrap.github.io/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  ReactJS Bootstrap
-                </a>{' '}
-                with react-scripts.
+                Zenith Health is a portfolio project I use to explore how modern
+                cloud and AI systems can support health-tech workflows. It started
+                as a dashboard project and has evolved into a more realistic
+                platform with Infrastructure as Code, secure secret handling,
+                cloud deployment, observability, and AI-assisted scheduling.
               </p>
               <p>
-                This doc will guide you to understand how Dash UI-NextJS theme is
-                organized, basics of how to customize, and how to compile from
-                the source code if you want.
+                The current workflow allows a receptionist to enter a free-text
+                booking request, uses Azure OpenAI to extract structured
+                appointment details, creates a draft appointment, and sends it
+                into a doctor review flow before final confirmation.
               </p>
+            </Card.Body>
+          </Card>
 
-              <hr className="mb-5 mt-5" />
+          <Card className="mb-4 shadow-sm border-0">
+            <Card.Body>
+              <h2 className="fw-bold mb-3">Core Architecture</h2>
+              <ul className="mb-0">
+                <li><strong>Frontend:</strong> Next.js dashboard UI</li>
+                <li><strong>Backend:</strong> API routes in Next.js</li>
+                <li><strong>Database:</strong> Azure SQL</li>
+                <li><strong>AI Layer:</strong> Azure OpenAI</li>
+                <li><strong>Secrets:</strong> Azure Key Vault</li>
+                <li><strong>Hosting:</strong> Azure App Service</li>
+                <li><strong>Observability:</strong> Application Insights + Log Analytics</li>
+                <li><strong>Infrastructure:</strong> Terraform</li>
+                <li><strong>CI/CD:</strong> GitHub Actions with OIDC-based Azure login</li>
+              </ul>
+            </Card.Body>
+          </Card>
 
-              <h2 className="mb-0 fw-bold">Running in Local environment</h2>
-              <p>This project is scaffolded using npx create-next-app@latest.</p>
-
-              <ol>
-                <li>
-                  <h4 className="mb-0 fw-bold">Requirements Node.js</h4>
-                  <p>
-                    Before proceeding you&apos;ll need to have the latest stable{' '}
-                    <a
-                      href="https://nodejs.org/en/download/"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {' '}
-                      nodejs.
-                    </a>{' '}
-                    Install <code>Node.js</code> or already have it installed on
-                    your machine move to next step.
-                  </p>
-                </li>
-                <li>
-                  {' '}
-                  <h4 className="mb-0 fw-bold">Install Dash UI NextJS</h4>
-                  <p>
-                    Open the <span>dashui-free-nextjs-admin-template </span>directory with your cmd
-                    or terminal. Open the project folder and install its
-                    dependencies.{' '}
-                  </p>
-                  <pre className="prism-code language-jsx mb-2 bg-dark text-white fs-5">
-                    cd dashui-free-nextjs-admin-template{' '}
-                  </pre>
-                  <pre className="prism-code language-jsx mb-2  bg-dark text-white fs-5">
-                    npm install{' '}
-                  </pre>
-                  <p>
-                    This command will download all the necessary dependencies
-                    for dash UI in the node_modules directory.
-                  </p>
-                </li>
-                <li>
-                  <h4 className="mb-0 fw-bold">Start</h4>
-                  <p>
-                    Run <code>npm run dev</code> or <code>yarn dev</code> or <code>pnpm dev</code> to start the development server on http://localhost:3000
-                  </p>
-                  <p>
-                    Visit <code><a
-                      href="http://localhost:3000"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      http://localhost:3000{' '}
-                    </a></code> to view your application
-                  </p>
-                  <p>
-                    Edit <code>pages/index.js</code> and see the updated result in your browser
-                  </p>
-                  <pre className="prism-code language-jsx  bg-dark text-white fs-5">
-                    npm run dev
-                  </pre>
-                </li>
+          <Card className="mb-4 shadow-sm border-0">
+            <Card.Body>
+              <h2 className="fw-bold mb-3">Current AI Workflow</h2>
+              <ol className="mb-0">
+                <li>Receptionist enters a natural-language appointment request.</li>
+                <li>Azure OpenAI extracts patient, doctor, appointment date/time, and priority.</li>
+                <li>The system creates a draft appointment for review.</li>
+                <li>A doctor verifies the draft before final confirmation.</li>
               </ol>
-              <hr className="mb-5 mt-5" />
-              <h2 className="mb-0 fw-bold">Creating a Production Build.</h2>
-              <p>Production build of your app.</p>
-              <ol>
-                <li>
-                  <div className="mb-4">
-                    <p>
-                      Run <code>npm run build</code> command in your project
-                      directory to make the Production build app.
-                    </p>
-                    <pre className="prism-code language-jsx mb-2 bg-dark text-white fs-5">
-                      npm run build
-                    </pre>
-                  </div>
-                </li>
-                <li>
-                  <div className="">
-                    <p> This output is generated inside the <code>.next</code> folder:</p>
-                    <pre className="prism-code language-jsx  bg-dark text-white fs-5 mb-2">
-                      npm run start
-                    </pre>
-                    <p>
-                      Once you execute above command, the production build run
-                      locally at <code>http://localhost:3000</code>.
-                    </p>
-                  </div>
-                </li>
-              </ol>
+            </Card.Body>
+          </Card>
 
-              <hr className="mb-5 mt-5" />
-              <h2 className="mb-0 fw-bold">API Demo:</h2>
-              <p>Here is an API demo using fetch , <Link href="/pages/api-demo"> <code>click here</code></Link></p>
+          <Card className="mb-4 shadow-sm border-0">
+            <Card.Body>
+              <h2 className="fw-bold mb-3">What I’ve Been Learning</h2>
+              <ul className="mb-0">
+                <li>How to move from manual cloud setup to Infrastructure as Code</li>
+                <li>How to secure deployments with OIDC and Key Vault</li>
+                <li>How to handle Azure SQL cold starts and connection retries</li>
+                <li>How to deal with Azure OpenAI model lifecycle changes and deprecations</li>
+                <li>How to design AI-assisted workflows with human review instead of blind automation</li>
+              </ul>
+            </Card.Body>
+          </Card>
+        </Col>
 
+        <Col lg={4} md={12} sm={12}>
+          <Card className="mb-4 shadow-sm border-0">
+            <Card.Body>
+              <h3 className="fw-bold mb-3">Tech Stack</h3>
+              <div className="d-flex flex-wrap gap-2">
+                <Badge bg="primary">Next.js</Badge>
+                <Badge bg="secondary">React</Badge>
+                <Badge bg="success">Azure</Badge>
+                <Badge bg="info">Terraform</Badge>
+                <Badge bg="dark">GitHub Actions</Badge>
+                <Badge bg="warning" text="dark">Azure OpenAI</Badge>
+                <Badge bg="light" text="dark">Azure SQL</Badge>
+                <Badge bg="light" text="dark">Key Vault</Badge>
+                <Badge bg="light" text="dark">Application Insights</Badge>
+              </div>
+            </Card.Body>
+          </Card>
 
-              <hr className="mb-5 mt-5" />
-              <h2 className="mb-0 fw-bold">File Structure:</h2>
-              <p>
-                Inside the zip-file you&apos;ll find the following directories and
-                files. Both compiled and minified distrubution files, as well as
-                the source files are included in the package.
+          <Card className="mb-4 shadow-sm border-0">
+            <Card.Body>
+              <h3 className="fw-bold mb-3">Current Status</h3>
+              <p className="mb-2">
+                Zenith Health is still evolving. It is not positioned as a
+                production clinical system, but as a hands-on learning and
+                portfolio project for building more realistic cloud-native
+                health-tech workflows.
               </p>
+            </Card.Body>
+          </Card>
 
-              <code>
-                <pre>
-                  {`
-theme/
-├── .eslintrc.json
-├── .gitignore
-├── jsconfig.json
-├── next.config.js
-├── package.json
-├── package-lock.json
-├── README.md
-├── components/
-├── data/
-├── hooks/
-├── layouts/
-├── app/
-├── public/
-│   ├── fonts
-│   ├── images
-│   └── favicon.ico
-├── routes/
-├── styles/
-├── sub-components/
-└── widgets/
-`}
-                </pre>
-              </code>
+          <Card className="shadow-sm border-0">
+            <Card.Body>
+              <h3 className="fw-bold mb-3">Next Areas of Improvement</h3>
+              <ul className="mb-0">
+                <li>Server-enforced authentication and role checks</li>
+                <li>Stronger request and AI output validation</li>
+                <li>Cleaner migration strategy for database schema changes</li>
+                <li>More production-aware monitoring and alerting</li>
+              </ul>
             </Card.Body>
           </Card>
         </Col>
