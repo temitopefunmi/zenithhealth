@@ -49,27 +49,28 @@ jobs:
 
           if [ -z "$ACCOUNT_NAME" ]; then
             echo "account_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No OpenAI account found yet. Skipping model check."
           else
             echo "account_exists=true" >> $GITHUB_OUTPUT
             echo "account_name=$ACCOUNT_NAME" >> $GITHUB_OUTPUT
           fi
-        - name: Verify model availability
-          if: steps.check_account.outputs.account_exists == 'true'
-          run: |
-            MODEL_NAME="${{ vars.MODEL_NAME }}"
-            ACCOUNT_NAME="${{ steps.check_account.outputs.account_name }}"
+      - name: Verify model availability
+        if: steps.check_account.outputs.account_exists == 'true'
+        run: |
+          MODEL_NAME="${{ vars.MODEL_NAME }}"
+          ACCOUNT_NAME="${{ steps.check_account.outputs.account_name }}"
 
-            MODEL_FOUND=$(az cognitiveservices account list-models \
-              --name $ACCOUNT_NAME \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --query "[?name=='$MODEL_NAME'].name" -o tsv)
+          MODEL_FOUND=$(az cognitiveservices account list-models \
+            --name $ACCOUNT_NAME \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --query "[?name=='$MODEL_NAME'].name" -o tsv)
 
-            if [ -z "$MODEL_FOUND" ]; then
-              echo "❌ Model $MODEL_NAME not available"
-              exit 1
-            fi
+          if [ -z "$MODEL_FOUND" ]; then
+            echo "❌ Model $MODEL_NAME not available"
+            exit 1
+          fi
 
-            echo "✅ Model is available"
+          echo "✅ Model is available"
 
       # 2️⃣ INFRASTRUCTURE
       # Compile Bicep to JSON so Terraform can find it
