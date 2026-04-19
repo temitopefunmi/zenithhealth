@@ -27,6 +27,7 @@ jobs:
       ARM_USE_OIDC: true
       # 🔐 This allows Terraform to pass the app_name variable automatically
       TF_VAR_app_name: ${{ vars.APP_NAME }}
+    environment: Production
 
     steps:
       - name: Checkout Code
@@ -80,7 +81,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init & Apply
+      - name: Terraform Init 
         working-directory: ./terraform
         run: |
           terraform init \
@@ -88,9 +89,17 @@ jobs:
             -backend-config="container_name=tfstate" \
             -backend-config="resource_group_name=rg-zenith-mgmt" \
             -backend-config="key=terraform.tfstate"
-          
+      
+      - name : Terraform Plan
+        working-directory: ./terraform
+        run: |
+          terraform plan -out=tfplan 
+
+      -name: Terraform Apply
+        working-directory: ./terraform
+        run: |
+          terraform apply tfplan
           # Terraform will now create the SQL DB, Key Vault, and Managed Identity
-          terraform apply -auto-approve
 
       # 3️⃣ BUILD (Standard Next.js Build)
       - name: Setup Node.js
