@@ -10,6 +10,8 @@ CONTAINER_NAME="tfstate"
 IDENTITY_NAME="id-${PROJECT_NAME}-github"
 GITHUB_REPO="temitopefunmi/zenithhealth"
 OUTPUT_FILE="azure-setup-output.txt"
+MODEL_NAME="gpt-4.1-mini"
+RESOURCE_GROUP="rg-ZenithHealth"
 
 echo "Step 1: Creating Management Resource Group..."
 az group create --name $MGMT_RG --location $LOCATION
@@ -57,6 +59,8 @@ gh secret set AZURE_TENANT_ID --body "$TENANT_ID"
 gh secret set AZURE_SUBSCRIPTION_ID --body "$SUBSCRIPTION_ID"
 gh variable set APP_NAME --body "$APP_NAME"
 gh variable set STORAGE_ACCOUNT_NAME --body "$STORAGE_NAME"
+gh variable set RESOURCE_GROUP --body "$RESOURCE_GROUP"
+gh variable set MODEL_NAME --body "$MODEL_NAME"
 
 # -----------------------------
 # Step 6: Create OIDC Federated Credential

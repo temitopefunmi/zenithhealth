@@ -100,7 +100,7 @@ resource "azurerm_service_plan" "asp" {
   sku_name            = "F1"
 }
 
-# 10. Azure OpenAI Service
+# 10. Azure OpenAI Service Creation
 resource "azurerm_cognitive_account" "openai" {
   name                = "cog-zh-${random_id.server_suffix.hex}"
   location            = "eastus" # Ensure OpenAI is available in your region
