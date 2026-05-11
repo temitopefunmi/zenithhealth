@@ -10,6 +10,9 @@ const AICommandBar = ({ onDraftCreated }) => {
     const [preview, setPreview] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [scheduleStatus, setScheduleStatus] = useState('');
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [missingFields, setMissingFields] = useState([]);
 
     const resetAll = () => {
         setInput('');
@@ -18,6 +21,9 @@ const AICommandBar = ({ onDraftCreated }) => {
         setSuccess('');
         setLoading(false);
         setSaving(false);
+        setScheduleStatus('');
+        setAvailableSlots([]);
+        setMissingFields([]);
     };
 
     const safeDate =
@@ -67,6 +73,9 @@ const AICommandBar = ({ onDraftCreated }) => {
         setError('');
         setSuccess('');
         setPreview(null);
+        setScheduleStatus('');
+        setAvailableSlots([]);
+        setMissingFields([]);
 
         try {
             const res = await fetch('/api/ai/process', {
@@ -81,7 +90,29 @@ const AICommandBar = ({ onDraftCreated }) => {
                 throw new Error(data?.error || 'AI analysis failed.');
             }
 
-            setPreview(data);
+            const validationRes = await fetch('/api/scheduler/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patientName: data.patientName,
+                    doctor: data.doctor,
+                    appointmentDate: data.appointmentDate,
+                    priority: data.priority,
+                    notes: data.notes,
+                    aiReasoning: data.reasoning
+                })
+            });
+
+            const validationData = await validationRes.json();
+
+            if (!validationRes.ok) {
+                throw new Error(validationData?.message || 'Schedule validation failed.');
+            }
+
+            setPreview(validationData.draft || data);
+            setScheduleStatus(validationData.status || '');
+            setAvailableSlots(validationData.availableSlots || []);
+            setMissingFields(validationData.missingFields || []);
         } catch (err) {
             console.error('AI Error:', err);
             setError(err.message || 'Something went wrong while analyzing the request.');
@@ -114,7 +145,7 @@ const AICommandBar = ({ onDraftCreated }) => {
                     appointmentDate: preview.appointmentDate,
                     priority: preview.priority,
                     notes: preview.notes,
-                    aiReasoning: preview.reasoning,
+                    aiReasoning: preview.aiReasoning || preview.reasoning,
                     isVerified: 0
                 })
             });
@@ -232,6 +263,18 @@ const AICommandBar = ({ onDraftCreated }) => {
                                         {validation.missing.join(', ')}.
                                     </Alert>
                                 )}
+                                {scheduleStatus && scheduleStatus !== 'ready' && (
+                                    <Alert variant="warning" className="mb-3 py-2">
+                                        <strong>Scheduling review:</strong>{' '}
+                                        {scheduleStatus === 'needs_slot_selection'
+                                            ? 'No appointment date was found. Please select one of the available slots.'
+                                            : scheduleStatus === 'missing_fields'
+                                                ? `Missing field(s): ${missingFields.join(', ')}.`
+                                                : scheduleStatus === 'invalid'
+                                                    ? 'The appointment date could not be validated.'
+                                                    : 'This draft needs review before it can be saved.'}
+                                    </Alert>
+                                )}
 
                                 <div className="mb-2">
                                     <div className="small text-muted">Patient</div>
@@ -259,6 +302,33 @@ const AICommandBar = ({ onDraftCreated }) => {
                                             : '⚠️ No valid appointment date extracted'}
                                     </div>
                                 </div>
+
+                                {availableSlots.length > 0 && (
+                                    <div className="mb-3">
+                                        <div className="small text-muted mb-2">Available Slots</div>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {availableSlots.map((slot) => (
+                                                <Button
+                                                    key={slot}
+                                                    size="sm"
+                                                    variant={preview?.appointmentDate === slot ? 'primary' : 'outline-primary'}
+                                                    onClick={() =>
+                                                        setPreview((current) => ({
+                                                            ...current,
+                                                            appointmentDate: slot
+                                                        }))
+                                                    }
+                                                >
+                                                    {new Date(slot).toLocaleString('en-NG', {
+                                                        timeZone: 'Africa/Lagos',
+                                                        dateStyle: 'medium',
+                                                        timeStyle: 'short'
+                                                    })}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="mb-2">
                                     <div className="small text-muted">Notes</div>
