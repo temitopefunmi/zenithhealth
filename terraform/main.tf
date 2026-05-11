@@ -172,6 +172,9 @@ resource "azurerm_linux_web_app" "web_app" {
     "AZURE_OPENAI_API_KEY"         = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.openai_key.versionless_id})"
 
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
+    # Scheduler Function endpoint
+    "SCHEDULER_FUNCTION_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
+  
   }
 }
 
@@ -210,3 +213,74 @@ resource "azurerm_application_insights" "app_insights" {
   workspace_id        = azurerm_log_analytics_workspace.log_workspace.id
 }
 
+# 18. Storage Account for Azure Function
+resource "azurerm_storage_account" "function_storage" {
+  name                     = "stfnzh${random_id.server_suffix.hex}"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+# 19. Consumption Plan for Azure Function
+resource "azurerm_service_plan" "function_plan" {
+  name                = "asp-fn-${var.app_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  os_type             = "Linux"
+  sku_name            = "Y1"
+}
+
+# 20. Azure Function App for scheduling validation
+resource "azurerm_linux_function_app" "scheduler_function" {
+  name = "fn-${var.app_name}-${random_id.server_suffix.hex}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+
+  service_plan_id            = azurerm_service_plan.function_plan.id
+  storage_account_name       = azurerm_storage_account.function_storage.name
+  storage_account_access_key = azurerm_storage_account.function_storage.primary_access_key
+
+  https_only                    = true
+  functions_extension_version   = "~4"
+  builtin_logging_enabled       = true
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    application_stack {
+      node_version = "22"
+    }
+
+    application_insights_connection_string = azurerm_application_insights.app_insights.connection_string
+  }
+
+  app_settings = {
+    "FUNCTIONS_WORKER_RUNTIME" = "node"
+    "WEBSITE_RUN_FROM_PACKAGE" = "1"
+
+    # SQL settings
+    "DB_SERVER"   = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    "DB_NAME"     = "db-${var.app_name}"
+    "DB_USER"     = azurerm_mssql_server.sql_server.administrator_login
+    "DB_PASSWORD" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.sql_password_secret.versionless_id})"
+  }
+}
+
+# 21. Allow Function App managed identity to read Key Vault secrets
+resource "azurerm_key_vault_access_policy" "function_app_access" {
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_linux_function_app.scheduler_function.identity[0].principal_id
+
+  secret_permissions = [
+    "Get",
+    "List"
+  ]
+
+  depends_on = [
+    azurerm_linux_function_app.scheduler_function
+  ]
+}
