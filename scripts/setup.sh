@@ -73,6 +73,14 @@ az identity federated-credential create \
     --subject "repo:${GITHUB_REPO}:ref:refs/heads/main" \
     --audiences "api://AzureADTokenExchange"
 
+# Environment-based OIDC credential for deployment approvals
+az identity federated-credential create \
+    --name "github-actions-production" \
+    --identity-name $IDENTITY_NAME \
+    --resource-group $MGMT_RG \
+    --issuer "https://token.actions.githubusercontent.com" \
+    --subject "repo:${GITHUB_REPO}:environment:production" \
+    --audiences "api://AzureADTokenExchange"
 # -----------------------------
 # Step 7: Save output for reference
 # -----------------------------
