@@ -10,6 +10,7 @@ on:
       - 'lib/**'
       - 'components/**'
       - 'package*.json'
+      - 'fuctions/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
