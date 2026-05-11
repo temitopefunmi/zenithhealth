@@ -12,6 +12,7 @@ on:
       - 'package*.json'
       - 'functions/**'
       - '.github/workflows/**'
+      - 'sub-components/**'
   workflow_dispatch:
 
 permissions:
