@@ -1,0 +1,10 @@
+{
+  "name": "zenith-scheduler-function",
+  "version": "1.0.0",
+  "description": "Azure Function for validating AI appointment drafts and returning scheduling decisions.",
+  "main": "ValidateSchedule/index.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {}
+}
