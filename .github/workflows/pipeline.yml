@@ -13,6 +13,7 @@ on:
       - 'functions/**'
       - '.github/workflows/**'
       - 'sub-components/**'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -20,7 +21,47 @@ permissions:
   contents: read
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install & Build
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Prepare Deploy Package
+        run: |
+          mkdir -p deploy_staging
+          cp -r .next/standalone/. ./deploy_staging/
+          cp -r public ./deploy_staging/public || true
+          mkdir -p ./deploy_staging/.next
+          cp -r .next/static ./deploy_staging/.next/static
+
+      - name: Create Package
+        run: |
+          cd deploy_staging
+          zip -r ../deploy.zip .
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: deploy.zip
+
+jobs:
   terraform-plan:
+    needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
