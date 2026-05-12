@@ -15,6 +15,12 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
+# Resource group for functions
+resource "azurerm_resource_group" "function_rg" {
+  name     = "${var.resource_group_name}-fn"
+  location = var.location
+}
+
 # 3. Azure Key Vault for storing secrets securely (SQL password, OpenAI key)
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-zh-${random_id.server_suffix.hex}"
@@ -216,8 +222,8 @@ resource "azurerm_application_insights" "app_insights" {
 # 18. Storage Account for Azure Function
 resource "azurerm_storage_account" "function_storage" {
   name                     = "stfnzh${random_id.server_suffix.hex}"
-  resource_group_name      = azurerm_resource_group.rg.name
-  location                 = azurerm_resource_group.rg.location
+  resource_group_name      = azurerm_resource_group.function_rg.name
+  location                 = azurerm_resource_group.function_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
@@ -225,8 +231,8 @@ resource "azurerm_storage_account" "function_storage" {
 # 19. Consumption Plan for Azure Function
 resource "azurerm_service_plan" "function_plan" {
   name                = "asp-fn-${var.app_name}"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.function_rg.name
+  location            = azurerm_resource_group.function_rg.location
   os_type             = "Linux"
   sku_name            = "Y1"
 }
@@ -234,8 +240,8 @@ resource "azurerm_service_plan" "function_plan" {
 # 20. Azure Function App for scheduling validation
 resource "azurerm_linux_function_app" "scheduler_function" {
   name = "fn-${var.app_name}-${random_id.server_suffix.hex}"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.function_rg.name
+  location            = azurerm_resource_group.function_rg.location
 
   service_plan_id            = azurerm_service_plan.function_plan.id
   storage_account_name       = azurerm_storage_account.function_storage.name
