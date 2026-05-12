@@ -57,8 +57,7 @@ jobs:
         with:
           name: nextjs-build
           path: deploy.zip
-
-jobs:
+          
   terraform-plan:
     needs: build
     if: github.ref == 'refs/heads/main'
