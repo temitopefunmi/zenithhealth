@@ -179,7 +179,7 @@ resource "azurerm_linux_web_app" "web_app" {
 
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
     # Scheduler Function endpoint
-    "SCHEDULER_FUNCTION_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
+    "SCHEDULER_FUNCTION_BASE_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
   
   }
 }
