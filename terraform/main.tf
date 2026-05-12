@@ -265,7 +265,6 @@ resource "azurerm_linux_function_app" "scheduler_function" {
 
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME" = "node"
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
 
     # SQL settings
     "DB_SERVER"   = azurerm_mssql_server.sql_server.fully_qualified_domain_name
