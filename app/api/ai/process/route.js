@@ -70,6 +70,7 @@ Extract 'reasoning': This should be a brief explanation of WHY you chose the pri
   "doctor": string | null,
   "appointmentDate": string | null,
   "priority": "Low" | "Medium" | "High" | "Urgent",
+  "notes": string,
   "reasoning": string
 }
                 `.trim()

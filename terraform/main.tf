@@ -21,6 +21,13 @@ resource "azurerm_resource_group" "function_rg" {
   location = var.location
 }
 
+# User Assigned Managed Identity shared by application workloads
+resource "azurerm_user_assigned_identity" "app_identity" {
+  name                = "id-${var.app_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+}
+
 # 3. Azure Key Vault for storing secrets securely (SQL password, OpenAI key)
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-zh-${random_id.server_suffix.hex}"
@@ -148,8 +155,11 @@ resource "azurerm_linux_web_app" "web_app" {
   service_plan_id     = azurerm_service_plan.asp.id
   https_only          = true
 
+  key_vault_reference_identity_id = azurerm_user_assigned_identity.app_identity.id
+
   identity {
-    type = "SystemAssigned"
+    type = "SystemAssigned, UserAssigned"
+    identity_ids = [ azurerm_user_assigned_identity.app_identity.id ]
   }
 
   site_config {
@@ -251,8 +261,11 @@ resource "azurerm_linux_function_app" "scheduler_function" {
   functions_extension_version   = "~4"
   builtin_logging_enabled       = true
 
+  key_vault_reference_identity_id = azurerm_user_assigned_identity.app_identity.id
+
   identity {
-    type = "SystemAssigned"
+    type = "SystemAssigned, UserAssigned"
+    identity_ids = [ azurerm_user_assigned_identity.app_identity.id ]
   }
 
   site_config {
@@ -287,5 +300,18 @@ resource "azurerm_key_vault_access_policy" "function_app_access" {
 
   depends_on = [
     azurerm_linux_function_app.scheduler_function
+  ]
+}
+
+resource "azurerm_key_vault_access_policy" "shared_identity_access" {
+  key_vault_id = azurerm_key_vault.kv.id
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+
+  object_id = azurerm_user_assigned_identity.app_identity.principal_id
+
+  secret_permissions = [
+    "Get",
+    "List"
   ]
 }

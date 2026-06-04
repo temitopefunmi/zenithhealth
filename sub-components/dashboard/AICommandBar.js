@@ -337,7 +337,7 @@ const AICommandBar = ({ onDraftCreated }) => {
 
                                 <div className="mb-3">
                                     <div className="small text-muted">AI Reasoning</div>
-                                    <div className="small">{preview.reasoning || 'No reasoning provided'}</div>
+                                    <div className="small">{preview.aiReasoning || preview.reasoning || 'No clinical priority reason detected.'}</div>
                                 </div>
 
                                 <div className="d-flex gap-2">
