@@ -194,23 +194,21 @@ resource "azurerm_linux_web_app" "web_app" {
   }
 }
 
-# 14. Fetch the Web App identity after creation
-data "azurerm_linux_web_app" "web_app" {
-  name                = azurerm_linux_web_app.web_app.name
-  resource_group_name = azurerm_linux_web_app.web_app.resource_group_name
-  depends_on         = [ azurerm_linux_web_app.web_app ]
+# 14. Shared User Assigned Identity to read Key Vault secrets
+
+resource "azurerm_key_vault_access_policy" "shared_identity_access" {
+  key_vault_id = azurerm_key_vault.kv.id
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+
+  object_id = azurerm_user_assigned_identity.app_identity.principal_id
+
+  secret_permissions = [
+    "Get",
+    "List"
+  ]
 }
 
-# 15. Create access policy for the Web App's Managed Identity to read secrets from Key Vault
-resource "azurerm_key_vault_access_policy" "web_app_access" {
-  key_vault_id = azurerm_key_vault.kv.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_linux_web_app.web_app.identity[0].principal_id
-  secret_permissions = [
-    "Get", "List"
-  ]
-  depends_on = [ azurerm_linux_web_app.web_app ]
-}
 
 # 16. The Workspace where logs are stored
 resource "azurerm_log_analytics_workspace" "log_workspace" {
@@ -287,31 +285,3 @@ resource "azurerm_linux_function_app" "scheduler_function" {
   }
 }
 
-# 21. Allow Function App managed identity to read Key Vault secrets
-resource "azurerm_key_vault_access_policy" "function_app_access" {
-  key_vault_id = azurerm_key_vault.kv.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_function_app.scheduler_function.identity[0].principal_id
-
-  secret_permissions = [
-    "Get",
-    "List"
-  ]
-
-  depends_on = [
-    azurerm_linux_function_app.scheduler_function
-  ]
-}
-
-resource "azurerm_key_vault_access_policy" "shared_identity_access" {
-  key_vault_id = azurerm_key_vault.kv.id
-
-  tenant_id = data.azurerm_client_config.current.tenant_id
-
-  object_id = azurerm_user_assigned_identity.app_identity.principal_id
-
-  secret_permissions = [
-    "Get",
-    "List"
-  ]
-}
