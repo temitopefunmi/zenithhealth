@@ -194,7 +194,7 @@ resource "azurerm_linux_web_app" "web_app" {
   }
 }
 
-# 14. Shared User Assigned Identity to read Key Vault secrets
+# 14. Shared User Assigned Identity used by application workloads
 
 resource "azurerm_key_vault_access_policy" "shared_identity_access" {
   key_vault_id = azurerm_key_vault.kv.id
