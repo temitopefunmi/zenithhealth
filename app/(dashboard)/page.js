@@ -1,56 +1,52 @@
 'use client'
 import { Fragment, useState } from "react";
-import { Container, Col, Row, Button, ButtonGroup } from 'react-bootstrap';
+import { Container, Col, Row } from 'react-bootstrap';
 import { StatRightTopIcon } from "widgets";
 import { ActiveProjects, Teams, TasksPerformance } from "sub-components";
 import ProjectsStatsData from "data/dashboard/ProjectsStatsData";
 import AICommandBar from "sub-components/dashboard/AICommandBar"; 
+import { useSession } from "next-auth/react";
 
 const Home = () => {
+    const { data: session, status } = useSession();
+
+    const role = session?.user?.role;
+
     const [refreshKey, setRefreshKey] = useState(0);
-    // Role state: 'receptionist' or 'doctor'
-    const [role, setRole] = useState('receptionist');
 
     const handleDraftCreated = () => {
         setRefreshKey(prev => prev + 1);
     };
 
+    if (status === "loading") {
+          return (
+            <div className="text-center mt-5">
+            Loading dashboard...
+            </div>
+        );
+    }
+
     return (
         <Fragment>
-            <div className="bg-primary pt-10 pb-21"></div>
+            <div className="bg-primary pt-10 pb-21"></div>        
             <Container fluid className="mt-n22 px-6">
                 <Row>
                     <Col lg={12} md={12} xs={12}>
-                        {/* ROLE SELECTOR: Excellent for demoing the two "Worlds" */}
+                        
                         <div className="d-flex justify-content-between align-items-center mb-4">
                             <h3 className="mb-0 text-white">Zenith AI Dashboard</h3>
-                            <ButtonGroup>
-                                <Button 
-                                    variant={role === 'receptionist' ? 'white' : 'outline-white'} 
-                                    onClick={() => setRole('receptionist')}
-                                    size="sm"
-                                >
-                                    Receptionist View
-                                </Button>
-                                <Button 
-                                    variant={role === 'doctor' ? 'white' : 'outline-white'} 
-                                    onClick={() => setRole('doctor')}
-                                    size="sm"
-                                >
-                                    Doctor View
-                                </Button>
-                            </ButtonGroup>
+                            
                         </div>
 
-                        {/* 1. RECEPTIONIST WORLD: Only show AI Bar to Receptionists */}
-                        {role === 'receptionist' && (
+                        {/* 1. ADMIN WORLD */}
+                        {role === 'ADMIN' && (
                             <AICommandBar onDraftCreated={handleDraftCreated} />
                         )}
 
                         <div className="d-flex justify-content-between align-items-center mt-4">
                             <div className="mb-2 mb-lg-0">
-                                <h3 className="mb-0 text-white">
-                                    {role === 'receptionist' ? 'Clinical Intake Overview' : 'My Verification Queue'}
+                                <h3 className="mb-0 text-dark">
+                                    Welcome, {session?.user?.name}
                                 </h3>
                             </div>
                         </div>

@@ -3,7 +3,7 @@
 // import node module libraries
 import { Row, Col, Card, Form, Button, Image } from 'react-bootstrap';
 import Link from 'next/link';
-
+import { signIn } from "next-auth/react";
 // import hooks
 import useMounted from 'hooks/useMounted';
 
@@ -45,7 +45,16 @@ const SignIn = () => {
                 <div>
                   {/* Button */}
                   <div className="d-grid">
-                    <Button variant="primary" type="submit">Sign In</Button>
+                      <Button
+                        variant="primary"
+                        type="button"
+                        onClick={() => {
+                          console.log("Button clicked");
+                          signIn("azure-ad");
+                        }}
+                      >
+                      Sign in with Microsoft 
+                    </Button>
                   </div>
                   <div className="d-md-flex justify-content-between mt-4">
                     <div className="mb-2 mb-md-0">
