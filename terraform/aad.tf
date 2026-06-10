@@ -39,7 +39,7 @@ resource "azuread_application" "zenith_portal" {
     web {
         redirect_uris = [
             "http://localhost:3000/api/auth/callback/azure-ad",
-            "https://${azurerm_linux_web_app.web_app.default_hostname}/api/auth/callback/azure-ad"
+            "https://${var.app_name}.azurewebsites.net/api/auth/callback/azure-ad"
         ]
     
     }
