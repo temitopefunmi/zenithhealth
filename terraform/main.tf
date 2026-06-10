@@ -191,12 +191,6 @@ resource "azurerm_linux_web_app" "web_app" {
     # Scheduler Function endpoint
     "SCHEDULER_FUNCTION_BASE_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
 
-    # Authentication settings for Azure AD
-    "AZURE_AD_CLIENT_ID"     = azuread_application.zenith_portal.client_id
-    "AZURE_AD_CLIENT_SECRET" = azuread_application_password.portal_password.value
-    "AZURE_AD_TENANT_ID"    = data.azurerm_client_config.current.tenant_id
-    "NEXTAUTH_SECRET"       = random_password.nextauth_secret.result
-    "NEXTAUTH_URL"          = "https://${var.app_name}.azurewebsites.net"
   }
 }
 
