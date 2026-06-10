@@ -190,7 +190,13 @@ resource "azurerm_linux_web_app" "web_app" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
     # Scheduler Function endpoint
     "SCHEDULER_FUNCTION_BASE_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
-  
+
+    # Authentication settings for Azure AD
+    "AZURE_AD_CLIENT_ID"     = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.aad_client_id.versionless_id})"
+    "AZURE_AD_CLIENT_SECRET" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.aad_client_secret.versionless_id})"
+    "AZURE_AD_TENANT_ID"    = data.azurerm_client_config.current.tenant_id
+    "NEXTAUTH_SECRET"       = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
+    "NEXTAUTH_URL"          = "https://${var.app_name}.azurewebsites.net"
   }
 }
 

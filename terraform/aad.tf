@@ -1,5 +1,15 @@
 provider "azuread" {}
 
+resource "random_uuid" "admin_role" {}
+
+resource "random_uuid" "doctor_role" {}
+
+resource "random_uuid" "nurse_role" {}
+
+resource "random_password" "nextauth_secret" {
+  length  = 32
+  special = false
+}
 
 resource "azuread_application" "zenith_portal" {
   display_name = "Zenith Health Portal"
@@ -10,26 +20,26 @@ resource "azuread_application" "zenith_portal" {
     description           = "Admin role for Zenith Health Portal"
     display_name         = "ADMIN"
     value                = "ADMIN"
-    id                   = uuid()
+    id                   = random_uuid.admin_role.result
   }
     app_role {
         allowed_member_types  = ["User"]
         description           = "Doctors role for Zenith Health Portal"
         display_name         = "DOCTOR"
         value                = "DOCTOR"
-        id                   = uuid()
+        id                   = random_uuid.doctor_role.result
     }
     app_role {
         allowed_member_types  = ["User"]
         description           = "Nurses role for Zenith Health Portal"
         display_name         = "NURSE"
         value                = "NURSE"
-        id                   = uuid()
+        id                   = random_uuid.nurse_role.result
     }
     web {
         redirect_uris = [
-            "https://localhost:3000/auth/callback",
-            "https://${azurerm_linux_web_app.web_app.default_site_hostname}/auth/callback"
+            "http://localhost:3000/api/auth/callback/azure-ad",
+            "https://${azurerm_linux_web_app.web_app.default_hostname}/api/auth/callback/azure-ad"
         ]
     
     }
@@ -53,4 +63,10 @@ resource "azurerm_key_vault_secret" "aad_client_secret" {
   name         = "aad-client-secret"
     value        = azuread_application_password.portal_password.value
     key_vault_id = azurerm_key_vault.kv.id
+}
+
+resource "azurerm_key_vault_secret" "nextauth_secret" {
+  name         = "nextauth-secret"
+  value        = random_password.nextauth_secret.result
+  key_vault_id = azurerm_key_vault.kv.id
 }
