@@ -29,7 +29,7 @@ resource "azuread_application" "zenith_portal" {
     web {
         redirect_uris = [
             "https://localhost:3000/auth/callback",
-            "https://${azurerm_linux_web_app.portal_app.default_site_hostname}/auth/callback"
+            "https://${azurerm_linux_web_app.web_app.default_site_hostname}/auth/callback"
         ]
     
     }
