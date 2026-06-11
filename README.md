@@ -190,7 +190,7 @@ AI-assisted appointment scheduling:
 * Appointment draft generation
 * Priority classification
 
-### Phase 5 (Current)
+### Phase 5 
 
 Serverless workflow validation:
 
@@ -198,6 +198,18 @@ Serverless workflow validation:
 * Appointment validation layer
 * Scheduling workflow orchestration
 * Improved AI governance and validation
+
+### Phase 6
+
+Identity and Access Management
+
+* User Assigned Managed Identity migration
+* Microsoft Entra ID authentication
+* NextAuth integration
+* Protected application routes
+* Application roles (ADMIN / DOCTOR / NURSE)
+* Role propagation into sessions
+* PowerShell provisioning automation
 
 ---
 
@@ -215,15 +227,124 @@ Suggested contents:
 
 ---
 
+## Deployment & Initial Setup
+
+After cloning the repository, complete the following steps.
+
+### 1. Bootstrap Azure & GitHub OIDC
+
+Run:
+
+```bash
+./scripts/setup.sh
+```
+
+This script prepares the Azure and GitHub authentication environment by:
+
+- Creating the management resource group
+- Creating a Storage Account and Blob Container for the Terraform state
+- Creating a User Assigned Managed Identity
+- Waiting for the managed identity to propagate to Microsoft Entra ID
+- Assigning the Contributor role to the managed identity
+- Creating GitHub OIDC federated credentials for:
+  - Branch-based deployments
+  - Production environment deployments
+- Automatically configuring the required GitHub Secrets:
+- Automatically configuring the required GitHub Variables:
+- Optional: Saving the generated configuration details to `azure-setup-output.txt`. This is not pushed to repo
+
+> No client secrets are created. Authentication between GitHub Actions and Azure uses OpenID Connect (OIDC) with a User Assigned Managed Identity.
+
+---
+
+### 2. Deploy the Application
+
+Push your code to GitHub:
+
+```bash
+git push
+```
+
+GitHub Actions automatically builds and deploys the application to Azure App Service.
+
+---
+
+### 3. Install PowerShell Prerequisites
+
+Run:
+
+```powershell
+.\scripts\install-prerequisites.ps1
+```
+
+Installs the required PowerShell modules, including:
+
+- Az
+- Microsoft Graph
+
+---
+
+### 4. Configure Microsoft Entra ID
+
+Run:
+
+```powershell
+.\scripts\setup-entra.ps1
+```
+
+This script:
+
+- Connects to Microsoft Graph
+- Creates the App Registration
+- Creates the Enterprise Application
+- Creates the ADMIN, DOCTOR and NURSE application roles
+- Generates a client secret
+- Generates a NextAuth secret
+- Stores secrets in Azure Key Vault
+- Updates the Azure App Service configuration to use Key Vault references
+
+---
+
+### 5. Create Users
+
+Run:
+
+```powershell
+.\scripts\bootstrap-users.ps1
+```
+
+The script provides an interactive menu to:
+
+- Create Admin users
+- Create Doctor users
+- Create Nurse users
+- Create Custom users
+- Assign application roles
+- Generate temporary passwords
+- Force password change on first sign-in
+
+The script is safe to rerun and will reuse existing users when appropriate.
+
+---
+
+### Login
+
+Once setup is complete, browse to:
+
+```
+https://<your-app>.azurewebsites.net
+```
+
+Sign in using one of the Microsoft Entra users created with `bootstrap-users.ps1`.
+
+---
+
 ## Current Limitations
 
 This project is still actively evolving.
 
 Areas currently being improved include:
 
-* Role-based access control (RBAC)
-* Authentication and authorization
-* Appointment conflict detection
 * Additional AI validation safeguards
 * Audit logging
 * Production hardening
