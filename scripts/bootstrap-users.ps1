@@ -65,11 +65,14 @@ Connect-MgGraph `
     -Scopes `
         "User.ReadWrite.All",
         "Application.ReadWrite.All",
-        "AppRoleAssignment.ReadWrite.All"
+        "AppRoleAssignment.ReadWrite.All" `
+    -ErrorAction Stop
 
-Write-Host ""
+if (-not (Get-MgContext)) {
+    throw "Microsoft Graph authentication failed."
+}
+
 Write-Host "Connected."
-Write-Host ""
 
 
 ##########################################################
@@ -223,7 +226,13 @@ if (-not $userAlreadyExists) {
 
     Add-Type -AssemblyName System.Web
 
-    $tempPassword = [System.Web.Security.Membership]::GeneratePassword(20,4)
+    $tempPassword = -join (
+    1..20 | ForEach-Object {
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"[
+            (Get-Random -Maximum 72)
+        ]
+    }
+)
 
     ##########################################################
     # Create User

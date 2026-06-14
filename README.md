@@ -286,6 +286,48 @@ Installs the required PowerShell modules, including:
 
 ### 4. Configure Microsoft Entra ID
 
+#### Prerequisites
+
+The setup and bootstrap scripts provision Microsoft Entra resources such as:
+
+- App registrations
+- Enterprise applications (service principals)
+- App roles
+- Client secrets
+- Microsoft Entra users
+- App role assignments
+
+The account running these scripts must have sufficient permissions.
+
+#### Recommended roles
+
+- **Application Administrator**
+  - Required for creating and configuring app registrations and enterprise applications.
+
+- **User Administrator**
+  - Required for creating Microsoft Entra users and assigning application roles.
+
+> These roles are required only for provisioning and administration tasks. For production environments, follow the principle of least privilege and avoid using Global Administrator unless absolutely necessary.
+
+#### Verify your account
+
+Before running the scripts, ensure your signed-in account has the required Microsoft Entra roles and that you authenticate to the correct tenant. 
+
+I recommend creating a seperate Entra account for this, I had issues using the owner account.
+
+You can verify your Microsoft Graph session with:
+
+```powershell
+Get-MgContext
+```
+
+and reconnect if necessary:
+
+```powershell
+Disconnect-MgGraph
+Connect-MgGraph
+```
+
 Run:
 
 ```powershell
@@ -324,6 +366,7 @@ The script provides an interactive menu to:
 - Force password change on first sign-in
 
 The script is safe to rerun and will reuse existing users when appropriate.
+
 
 ---
 

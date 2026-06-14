@@ -1,18 +1,62 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, Form, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { useSession } from 'next-auth/react';
+
+const ROLE_CONFIGS = {
+    ADMIN: {
+        title: 'Hospital Operations AI Assistant',
+        description: 'Ask about statistics, reports, staff, or analytics',
+        placeholder: 'e.g., "How many patients checked in today?" or "Generate weekly occupancy report"',
+        intents: ['viewStatistics', 'searchEntity', 'listEntity', 'generateReport', 'generateAnalytics', 'viewSummary'],
+        examples: [
+            'How many appointments today?',
+            'Generate weekly report',
+            'List all doctors',
+            'Find John Doe',
+            'Show patient registration trends'
+        ]
+    },
+    DOCTOR: {
+        title: 'Patient Care AI Assistant',
+        description: 'Ask about your patients, appointments, and medical summaries',
+        placeholder: 'e.g., "Show my appointments today" or "Summarize patient history for John"',
+        intents: ['viewMyAppointments', 'viewMySchedule', 'viewAssignedPatients', 'summarizePatientHistory', 'draftConsultationNotes', 'draftReferral', 'draftFollowupNotes'],
+        examples: [
+            'Show my appointments',
+            'Who is my next patient?',
+            'Find John Doe',
+            'Summarize patient history',
+            'Draft consultation notes'
+        ]
+    },
+    NURSE: {
+        title: 'Patient Care & Workflow AI Assistant',
+        description: 'Ask about patient queues, appointments, vitals, or task management',
+        placeholder: 'e.g., "Book John Doe tomorrow" or "Show waiting patients"',
+        intents: ['showWaitingPatients', 'showTodaysQueue', 'searchPatient', 'bookAppointment', 'rescheduleAppointment', 'cancelAppointment', 'checkInPatient', 'recordVitals', 'assistVitalsWorkflow'],
+        examples: [
+            'Book John Doe tomorrow',
+            'Reschedule Sarah\'s appointment',
+            'Cancel appointment 1045',
+            'Show waiting patients',
+            'Check in Jane Smith'
+        ]
+    }
+};
 
 const AICommandBar = ({ onDraftCreated }) => {
+    const { data: session, status } = useSession();
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [preview, setPreview] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [scheduleStatus, setScheduleStatus] = useState('');
-    const [availableSlots, setAvailableSlots] = useState([]);
-    const [missingFields, setMissingFields] = useState([]);
+    const [responseType, setResponseType] = useState(null);
+    const role = session?.user?.role;
+    const roleConfig = role ? ROLE_CONFIGS[role] : null;
 
     const resetAll = () => {
         setInput('');
@@ -21,67 +65,27 @@ const AICommandBar = ({ onDraftCreated }) => {
         setSuccess('');
         setLoading(false);
         setSaving(false);
-        setScheduleStatus('');
-        setAvailableSlots([]);
-        setMissingFields([]);
+        setResponseType(null);
     };
+    
 
-    const safeDate =
-        preview?.appointmentDate && !isNaN(new Date(preview.appointmentDate).getTime())
-            ? new Date(preview.appointmentDate)
-            : null;
-
-    const validation = useMemo(() => {
-        if (!preview) {
-            return {
-                canSubmit: false,
-                missing: []
-            };
-        }
-
-        const missing = [];
-
-        if (!preview.patientName || preview.patientName === 'N/A') {
-            missing.push('patient name');
-        }
-
-        if (!preview.appointmentDate || !safeDate) {
-            missing.push('appointment date/time');
-        }
-
-        return {
-            canSubmit: missing.length === 0,
-            missing
-        };
-    }, [preview, safeDate]);
-
-    const getPriorityVariant = (priority) => {
-        switch (priority) {
-            case 'Urgent':
-                return 'danger';
-            case 'High':
-                return 'warning';
-            case 'Medium':
-                return 'info';
-            default:
-                return 'secondary';
-        }
-    };
+    
 
     const handleProcess = async () => {
         setLoading(true);
         setError('');
         setSuccess('');
         setPreview(null);
-        setScheduleStatus('');
-        setAvailableSlots([]);
-        setMissingFields([]);
+        setResponseType(null);
 
         try {
             const res = await fetch('/api/ai/process', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: input })
+                body: JSON.stringify({
+                    text: input
+
+                })
             });
 
             const data = await res.json();
@@ -90,29 +94,12 @@ const AICommandBar = ({ onDraftCreated }) => {
                 throw new Error(data?.error || 'AI analysis failed.');
             }
 
-            const validationRes = await fetch('/api/scheduler/validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    patientName: data.patientName,
-                    doctor: data.doctor,
-                    appointmentDate: data.appointmentDate,
-                    priority: data.priority,
-                    notes: data.notes,
-                    aiReasoning: data.reasoning
-                })
-            });
-
-            const validationData = await validationRes.json();
-
-            if (!validationRes.ok) {
-                throw new Error(validationData?.message || 'Schedule validation failed.');
-            }
-
-            setPreview(validationData.draft || data);
-            setScheduleStatus(validationData.status || '');
-            setAvailableSlots(validationData.availableSlots || []);
-            setMissingFields(validationData.missingFields || []);
+            setPreview(data);
+            setResponseType(data.type || 'intent');
+            
+            if (data.type === 'search' || data.type === 'list') {
+                setSuccess(`Found ${data.results?.length || 0} results.`);
+            }            
         } catch (err) {
             console.error('AI Error:', err);
             setError(err.message || 'Something went wrong while analyzing the request.');
@@ -121,62 +108,65 @@ const AICommandBar = ({ onDraftCreated }) => {
         }
     };
 
-    const confirmDraft = async () => {
+    const confirmAction = async () => {
         if (!preview) return;
 
-        if (!validation.canSubmit) {
-            setError(
-                `Please review the draft. Missing required field(s): ${validation.missing.join(', ')}.`
-            );
-            return;
-        }
 
         setSaving(true);
         setError('');
         setSuccess('');
 
         try {
-            const res = await fetch('/api/appointments', {
+            const res = await fetch('/api/ai/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    patient: preview.patientName,
-                    doctor: preview.doctor,
-                    appointmentDate: preview.appointmentDate,
-                    priority: preview.priority,
-                    notes: preview.notes,
-                    aiReasoning: preview.aiReasoning || preview.reasoning,
-                    isVerified: 0
+                    intent: preview.intent,
+                    parameters: preview.parameters
                 })
             });
 
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data?.error || 'Failed to create draft appointment.');
+                throw new Error(data?.error || 'Failed to execute action.');
             }
 
-            setSuccess('Draft appointment created successfully.');
+            setSuccess('Action executed successfully.');
             setInput('');
             setPreview(null);
             onDraftCreated?.();
         } catch (err) {
-            console.error('Create Draft Error:', err);
-            setError(err.message || 'Something went wrong while creating the draft.');
+            console.error('Execute Action Error:', err);
+            setError(err.message || 'Something went wrong while executing the action.');
         } finally {
             setSaving(false);
         }
     };
+
+    if (status === 'loading' || !roleConfig) {
+        return (
+            <Card className="mb-4 border-0 shadow-sm">
+                <Card.Body className="p-4">
+                    <Spinner animation="border" size="sm" /> Loading...
+                </Card.Body>
+            </Card>
+        );
+    }    
 
     return (
         <Card className="mb-4 border-0 shadow-sm">
             <Card.Body className="p-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h5 className="mb-1">✨ AI Scheduling Assistant</h5>
-                        <p className="text-muted small mb-0">
-                            Turn free-text intake into a draft appointment for review.
-                        </p>
+                        
+                       
+                        <h5 className="mb-1">
+                            {roleConfig.title}
+                        </h5>
+                        <p className="text-muted small mb-0">{roleConfig.description}</p>
+              
+                        
                     </div>
                 </div>
 
@@ -193,21 +183,21 @@ const AICommandBar = ({ onDraftCreated }) => {
                 )}
 
                 <Form.Group className="mb-3">
-                    <Form.Label className="fw-semibold">Booking Request</Form.Label>
+                    <Form.Label className="fw-semibold">Your Request</Form.Label>
                     <Form.Control
                         as="textarea"
                         rows={3}
-                        placeholder="e.g., Schedule John Doe with Dr. Smith tomorrow for chest pain..."
+                        placeholder={roleConfig.placeholder}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         isInvalid={!input.trim() && !!error}
                     />
                     <Form.Text className="text-muted">
-                        Enter the receptionist’s note in plain language.
+                        Enter your request in plain language.
                     </Form.Text>
                 </Form.Group>
 
-                <div className="d-flex gap-2 mb-2">
+                <div className="d-flex gap-2 mb-3">
                     <Button
                         variant="primary"
                         onClick={handleProcess}
@@ -223,7 +213,7 @@ const AICommandBar = ({ onDraftCreated }) => {
                                     aria-hidden="true"
                                     className="me-2"
                                 />
-                                Analyzing...
+                                Processing...
                             </>
                         ) : (
                             'Analyze Request'
@@ -240,147 +230,116 @@ const AICommandBar = ({ onDraftCreated }) => {
                 </div>
 
                 {preview && (
-                    <>
-                        {!preview.patientName || preview.patientName === 'N/A' ? (
-                            <Alert variant="warning" className="mt-3 border-0 shadow-sm">
-                                <strong>AI clarification needed:</strong> I could not confidently
-                                identify the patient name. Try a more specific instruction like:
-                                {' '}
-                                <em>“Schedule John Doe for tomorrow at 2pm.”</em>
-                            </Alert>
-                        ) : (
-                            <Alert variant="light" className="mt-3 border shadow-sm mb-0">
+                 
+                            <Alert variant="light" className="border shadow-sm">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <strong>Draft Preview</strong>
-                                    <Badge bg={getPriorityVariant(preview.priority)}>
-                                        {preview.priority || 'Low'}
-                                    </Badge>
+                            <strong>AI Analysis</strong>
+                            <Badge bg="info">{preview.intent}</Badge>
                                 </div>
 
-                                {!validation.canSubmit && (
-                                    <Alert variant="warning" className="mb-3 py-2">
-                                        <strong>Incomplete draft:</strong> Missing{' '}
-                                        {validation.missing.join(', ')}.
-                                    </Alert>
-                                )}
-                                {scheduleStatus && scheduleStatus !== 'ready' && (
-                                    <Alert variant="warning" className="mb-3 py-2">
-                                        <strong>Scheduling review:</strong>{' '}
-                                        {scheduleStatus === 'needs_slot_selection'
-                                            ? 'No appointment date was found. Please select one of the available slots.'
-                                            : scheduleStatus === 'missing_fields'
-                                                ? `Missing field(s): ${missingFields.join(', ')}.`
-                                                : scheduleStatus === 'invalid'
-                                                    ? 'The appointment date could not be validated.'
-                                                    : 'This draft needs review before it can be saved.'}
-                                    </Alert>
-                                )}
+                        <div className="mb-3">
+                            <div className="small text-muted">Intent</div>
+                            <div className="fw-semibold">{preview.intent}</div>
+                        </div>
 
-                                <div className="mb-2">
-                                    <div className="small text-muted">Patient</div>
-                                    <div className="fw-semibold">{preview.patientName}</div>
+                                
+
+                    {preview.parameters && Object.keys(preview.parameters).length > 0 && (
+                            <div className="mb-3">
+                                <div className="small text-muted">Extracted Parameters</div>
+                                <div className="small">
+                                    {Object.entries(preview.parameters).map(([key, value]) => (
+                                        <div key={key}><strong>{key}:</strong> {String(value)}</div>
+                                    ))}
+                                </div>                          
+
+                               
+                                    
                                 </div>
-
-                                <div className="mb-2">
-                                    <div className="small text-muted">Doctor</div>
-                                    <div className={!preview.doctor || preview.doctor === 'N/A' ? 'text-muted' : ''}>
-                                        {!preview.doctor || preview.doctor === 'N/A'
-                                            ? '⚠️ To be assigned'
-                                            : preview.doctor}
-                                    </div>
-                                </div>
-
-                                <div className="mb-2">
-                                    <div className="small text-muted">Date / Time</div>
-                                    <div className={!safeDate ? 'text-muted' : ''}>
-                                        {safeDate
-                                            ? safeDate.toLocaleString('en-NG', {
-                                                  timeZone: 'Africa/Lagos',
-                                                  dateStyle: 'medium',
-                                                  timeStyle: 'short'
-                                              })
-                                            : '⚠️ No valid appointment date extracted'}
-                                    </div>
-                                </div>
-
-                                {availableSlots.length > 0 && (
+                    )}
+                                {preview.results && (
                                     <div className="mb-3">
-                                        <div className="small text-muted mb-2">Available Slots</div>
-                                        <div className="d-flex flex-wrap gap-2">
-                                            {availableSlots.map((slot) => (
-                                                <Button
-                                                    key={slot}
-                                                    size="sm"
-                                                    variant={preview?.appointmentDate === slot ? 'primary' : 'outline-primary'}
-                                                    onClick={() =>
-                                                        setPreview((current) => ({
-                                                            ...current,
-                                                            appointmentDate: slot
-                                                        }))
-                                                    }
-                                                >
-                                                    {new Date(slot).toLocaleString('en-NG', {
-                                                        timeZone: 'Africa/Lagos',
-                                                        dateStyle: 'medium',
-                                                        timeStyle: 'short'
-                                                    })}
-                                                </Button>
+                                    <div className="small text-muted">Results</div>
+                                <div className="small">
+                                    {Array.isArray(preview.results) ? (
+                                        <ul className="mb-0">
+                                            {preview.results.slice(0, 5).map((result, idx) => (
+                                                <li key={idx}>{String(result)}</li>
                                             ))}
+                                            {preview.results.length > 5 && (
+                                                <li>... and {preview.results.length - 5} more</li>
+                                            )}
+                                        </ul>
+                                    ) : (
+                                        <div>{String(preview.results)}</div>
+                                    )}                                    
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="mb-2">
-                                    <div className="small text-muted">Notes</div>
-                                    <div>{preview.notes || 'No notes provided'}</div>
-                                </div>
-
-                                <div className="mb-3">
-                                    <div className="small text-muted">AI Reasoning</div>
-                                    <div className="small">{preview.aiReasoning || preview.reasoning || 'No clinical priority reason detected.'}</div>
-                                </div>
-
-                                <div className="d-flex gap-2">
-                                    <Button
-                                        size="sm"
-                                        variant="success"
-                                        onClick={confirmDraft}
-                                        disabled={!validation.canSubmit || saving || loading}
-                                    >
-                                        {saving ? (
-                                            <>
-                                                <Spinner
-                                                    as="span"
-                                                    animation="border"
-                                                    size="sm"
-                                                    role="status"
-                                                    aria-hidden="true"
-                                                    className="me-2"
-                                                />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            'Create Draft Appointment'
-                                        )}
-                                    </Button>
-
-                                    <Button
-                                        size="sm"
-                                        variant="outline-secondary"
-                                        onClick={() => {
-                                            setPreview(null);
-                                            setError('');
-                                            setSuccess('');
-                                        }}
-                                        disabled={saving}
-                                    >
-                                        Dismiss Preview
-                                    </Button>
-                                </div>
-                            </Alert>
+                        {preview.summary && (
+                            <div className="mb-3">
+                                <div className="small text-muted">Summary</div>
+                                <div className="small">{preview.summary}</div>
+                            </div>
                         )}
-                    </>
+
+                        <div className="d-flex gap-2">
+                            <Button
+                                size="sm"
+                                variant="success"
+                                onClick={confirmAction}
+                                disabled={saving || loading}
+                            >
+                                {saving ? (
+                                    <>
+                                        <Spinner
+                                            as="span"
+                                            animation="border"
+                                            size="sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                            className="me-2"
+                                        />
+                                        Executing...
+                                    </>
+                                ) : (
+                                    'Execute Action'
+                                )}
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="outline-secondary"
+                                onClick={() => {
+                                    setPreview(null);
+                                    setError('');
+                                    setSuccess('');
+                                }}
+                                disabled={saving}
+                            >
+                                Dismiss
+                            </Button>
+                        </div>
+                    </Alert>
                 )}
+
+                <div className="mt-4 pt-3 border-top">
+                    <p className="text-muted small mb-2"><strong>Try asking:</strong></p>
+                    <div className="d-flex flex-wrap gap-2">
+                        {roleConfig.examples.map((example, idx) => (
+                            <Button
+                                key={idx}
+                                size="sm"
+                                variant="outline-primary"
+                                onClick={() => setInput(example)}
+                                className="text-nowrap"
+                            >
+                                {example}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
             </Card.Body>
         </Card>
     );

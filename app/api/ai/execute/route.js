@@ -1,5 +1,5 @@
 'use client'
-import dynamic  from "next/dynamic";
+import { dynamic } from 'next/dynamic';
 import { useSession } from "next-auth/react";
 
 const AdminDashboard = dynamic(() => import('sub-components/dashboard/AdminDashboard'), {
@@ -20,22 +20,22 @@ const NurseDashboard = dynamic(() => import('sub-components/dashboard/NurseDashb
 const Home = () => {
     const { data: session, status } = useSession();
 
-
     if (status === "loading") {
-          return (
+        return (
             <div className="text-center mt-5">
-            Loading dashboard...
+                Loading dashboard...
             </div>
         );
     }
+
     const role = session?.user?.role;
 
     if (!role) {
-    return (
-        <div className="text-center mt-5">
+        return (
+            <div className="text-center mt-5">
                 <p>Unable to determine user role. Please log in again.</p>
-        </div>
-                );
+            </div>
+        );
     }
 
     switch (role) {
@@ -52,5 +52,6 @@ const Home = () => {
                 </div>
             );
     }
-}   
+}
+
 export default Home;
