@@ -1,11 +1,32 @@
 'use client'
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from 'next/link';
 import { Card, Table, Dropdown, Image, Badge } from 'react-bootstrap';
 import { MoreVertical } from 'react-feather';
-import StaffData from "data/dashboard/StaffData";
+//import StaffData from "data/dashboard/StaffData";
 
 const StaffManagement = () => {
+    const [staff, setStaff] = useState([]);
+
+    useEffect(() => {
+        async function loadStaff() {
+            try {
+            const res = await fetch("/api/dashboard/admin/staff");
+
+            if (!res.ok) {
+                throw new Error("Failed to load staff");
+            }
+
+            const data = await res.json();
+
+            setStaff(data);
+            } catch (err) {
+            console.error(err);
+            }
+        }
+
+        loadStaff();
+        }, []);
     const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
         (<Link
             href=""
@@ -40,7 +61,7 @@ const StaffManagement = () => {
         <Card>
             <Card.Header className="bg-white py-4 d-flex justify-content-between align-items-center">
                 <h4 className="mb-0">Staff Management & Scheduling</h4>
-                <Badge bg="info">45 on duty</Badge>
+                <Badge bg="info">{staff.length} on duty</Badge>
             </Card.Header>
             <Table responsive className="text-nowrap">
                 <thead className="table-light">
@@ -53,11 +74,13 @@ const StaffManagement = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {StaffData.map((item, index) => (
+                    {staff.map((item, index) => (
                         <tr key={index}>
                             <td className="align-middle">
                                 <div className="d-flex align-items-center">
-                                    <Image src={item.image} alt="" className="avatar-md avatar rounded-circle" />
+                                    <div className="avatar avatar-md rounded-circle bg-light d-flex align-items-center justify-content-center">
+                                        {item.name?.charAt(0)}
+                                        </div>
                                     <div className="ms-3 lh-1">
                                         <h5 className="mb-1">{item.name}</h5>
                                         <p className="mb-0 text-muted small">{item.email}</p>

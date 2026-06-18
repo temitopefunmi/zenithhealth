@@ -1,8 +1,8 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Col, Row } from 'react-bootstrap';
 import { StatRightTopIcon } from "widgets";
-import NurseMetricsStats from "data/dashboard/NurseMetricsData";
+//import NurseMetricsStats from "data/dashboard/NurseMetricsData";
 import AICommandBar from "sub-components/dashboard/AICommandBar";
 import PatientCareQueue from "./PatientCareQueue";
 import VitalsMonitor from "./VitalsMonitor";
@@ -10,10 +10,60 @@ import MedicationSchedule from "./MedicationSchedule";
 
 const NurseDashboard = () => {
     const [refreshKey, setRefreshKey] = useState(0);
+    const [nurseMetrics, setNurseMetrics] = useState([]);
 
     const handleDraftCreated = () => {
         setRefreshKey(prev => prev + 1);
     };
+
+    useEffect(() => {
+        async function loadMetrics() {
+            try {
+                const res = await fetch("/api/dashboard/nurse");
+
+                if (!res.ok) {
+                    throw new Error("Failed to load nurse metrics");
+                }
+
+                const data = await res.json();
+
+                setNurseMetrics([
+                    {
+                        id: 1,
+                        title: "Assigned Patients Today",
+                        value: data.assignedPatients,
+                        icon: "👩‍⚕️",
+                        statInfo: "Currently assigned"
+                    },
+                    {
+                        id: 2,
+                        title: "Medication Tasks",
+                        value: data.medicationTasks,
+                        icon: "💊",
+                        statInfo: "Medication administrations today"
+                    },
+                    {
+                        id: 3,
+                        title: "Vitals Recorded Today",
+                        value: data.vitalsMonitored,
+                        icon: "🩺",
+                        statInfo: "Patients with recorded vitals"
+                    },
+                    {
+                        id: 4,
+                        title: "Emergency Patients",
+                        value: data.emergencyPatients,
+                        icon: "🚨",
+                        statInfo: "Require urgent care"
+                    }
+                ]);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        loadMetrics();
+    }, [refreshKey]);
 
     return (
         <>
@@ -36,7 +86,7 @@ const NurseDashboard = () => {
                         </div>
                     </Col>
 
-                    {NurseMetricsStats.map((item, index) => (
+                    {nurseMetrics.map((item, index) => (
                         <Col xl={3} lg={6} md={12} xs={12} className="mt-6" key={index}>
                             <StatRightTopIcon info={item} />
                         </Col>

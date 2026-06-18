@@ -1,19 +1,62 @@
 'use client'
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Row, Col, ProgressBar } from 'react-bootstrap';
 import { Activity, Cpu, Truck } from 'react-feather';
 
 const ResourceAllocation = () => {
-    const resources = [
-        { name: 'Hospital Beds', total: 150, used: 117, available: 33, icon: <Activity size={24} />, color: 'primary' },
-        { name: 'Medical Equipment', total: 80, used: 74, available: 6, icon: <Cpu size={24} />, color: 'info' },
-        { name: 'Ambulances', total: 12, used: 8, available: 4, icon: <Truck size={24} />, color: 'success' }
-    ];
+    const [resources, setResources] = useState([]);
+
+    useEffect(() => {
+        async function loadResources() {
+            try {
+            const res = await fetch("/api/dashboard/admin/resources");
+
+            if (!res.ok) {
+                throw new Error("Failed to load resources");
+            }
+
+            const data = await res.json();
+
+            setResources([
+                {
+                name: "Outpatients",
+                total: data.total,
+                used: data.outpatient,
+                available: data.total - data.outpatient,
+                icon: <Activity size={24} />,
+                color: "primary",
+                },
+                {
+                name: "Inpatients",
+                total: data.total,
+                used: data.inpatient,
+                available: data.total - data.inpatient,
+                icon: <Cpu size={24} />,
+                color: "info",
+                },
+                {
+                name: "Emergency",
+                total: data.total,
+                used: data.emergency,
+                available: data.total - data.emergency,
+                icon: <Truck size={24} />,
+                color: "danger",
+                },
+            ]);
+            } catch (err) {
+            console.error(err);
+            }
+        }
+
+        loadResources();
+        }, []);
+
+
 
     return (
         <Card>
             <Card.Header className="bg-white py-4">
-                <h4 className="mb-0">Resource Allocation & Availability</h4>
+                <h4 className="mb-0">Patient Distribution Overview</h4>
             </Card.Header>
             <Card.Body>
                 <Row>
@@ -25,7 +68,7 @@ const ResourceAllocation = () => {
                                 </div>
                                 <div>
                                     <h6 className="mb-1">{resource.name}</h6>
-                                    <span className="text-muted">{resource.available} of {resource.total}</span>
+                                    <span className="text-muted">{resource.used} patients</span>
                                 </div>
                             </div>
                             <ProgressBar 
@@ -34,7 +77,7 @@ const ResourceAllocation = () => {
                                 variant={resource.color}
                             />
                             <small className="text-muted mt-2 d-block">
-                                {resource.used} in use, {resource.available} available
+                                {Math.round((resource.used / resource.total) * 100)}% of patient population
                             </small>
                         </Col>
                     ))}

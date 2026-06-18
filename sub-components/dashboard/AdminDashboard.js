@@ -1,20 +1,74 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Col, Row } from 'react-bootstrap';
 import { StatRightTopIcon } from "widgets";
-import AdminMetricsStats from "data/dashboard/AdminMetricsData";
+//import AdminMetricsStats from "data/dashboard/AdminMetricsData";
 import AICommandBar from "sub-components/dashboard/AICommandBar";
 import StaffManagement from "./StaffManagement";
 import ResourceAllocation from "./ResourceAllocation";
 import OperationalAlerts from "./OperationalAlerts";
+import {
+  CalendarDays,
+  Clock3,
+  CircleCheckBig,
+  TriangleAlert,
+} from "lucide-react";
 
 const AdminDashboard = () => {
     const [refreshKey, setRefreshKey] = useState(0);
-
+    const [adminMetrics, setAdminMetrics] = useState([]);
     const handleDraftCreated = () => {
         setRefreshKey(prev => prev + 1);
     };
+    useEffect(() => {
+        async function loadMetrics() {
+            try {
+                const res = await fetch("/api/dashboard/admin");
 
+                if (!res.ok) {
+                    throw new Error("Failed to fetch metrics");
+                }
+
+                const data = await res.json();
+
+                setAdminMetrics([
+                    {
+                        id: 1,
+                        title: "Appointments Today",
+                        value: data.appointmentsToday,
+                        icon: <CalendarDays size={22} />,
+                        statInfo: `Total number of appointments`
+                    },
+                    {
+                        id: 2,
+                        title: "High Priority",
+                        value: data.highPriorityAppointments,
+                        icon: <TriangleAlert size={22} />,
+                        statInfo: "Needs prompt attention"
+                    },                    
+                    {
+                        id: 3,
+                        title: "Completed Appointments",
+                        value: data.completedAppointments,
+                        icon: <CircleCheckBig size={22} />,
+                        statInfo: "Successfully completed"
+                    },
+                    {
+                        id: 2,
+                        title: "Cancelled Appointments",
+                        value: data.cancelledAppointments,
+                        icon: <Clock3 size={22} />,
+                        statInfo: "Cancellations Today"
+                    },
+                    ]);
+                
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        loadMetrics();
+    }, [refreshKey]);
     return (
         <>
             <div className="bg-primary pt-10 pb-21"></div>
@@ -36,7 +90,7 @@ const AdminDashboard = () => {
                         </div>
                     </Col>
 
-                    {AdminMetricsStats.map((item, index) => (
+                    {adminMetrics.map((item, index) => (
                         <Col xl={3} lg={6} md={12} xs={12} className="mt-6" key={index}>
                             <StatRightTopIcon info={item} />
                         </Col>
