@@ -4,9 +4,9 @@
  */
 
 // sub components for /pages/dashboard
-import ActiveProjects from 'sub-components/dashboard/ActiveProjects';
-import TasksPerformance from 'sub-components/dashboard/TasksPerformance';
-import Teams from 'sub-components/dashboard/Teams';
+//import ActiveProjects from 'sub-components/dashboard/ActiveProjects';
+//import TasksPerformance from 'sub-components/dashboard/TasksPerformance';
+//import Teams from 'sub-components/dashboard/Teams';
 
 // sub components for /pages/profile
 import AboutMe from 'sub-components/profile/AboutMe';
@@ -29,9 +29,6 @@ import Preferences from 'sub-components/settings/Preferences';
 
 
 export {
-   ActiveProjects,
-   TasksPerformance,
-   Teams,
    
    AboutMe,
    ActivityFeed,
