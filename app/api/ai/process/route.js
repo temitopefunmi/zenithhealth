@@ -2,7 +2,7 @@ import { AzureOpenAI } from "openai";
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { ALLOWED_INTENTS } from "@/lib/ai/intent-permissions";
-import client from "@/lib/ai/azure-openai";
+import {getAzureOpenAIClient} from "@/lib/ai/azure-openai";
 
 // Force this route to run dynamically on the server
 export const dynamic = 'force-dynamic';
