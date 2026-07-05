@@ -1,6 +1,8 @@
 import { AzureOpenAI } from "openai";
 import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
+import { auth } from '@/lib/auth';
+import { ALLOWED_INTENTS } from "@/lib/ai/intent-permissions";
+import client from "@/lib/ai/azure-openai";
 
 // Force this route to run dynamically on the server
 export const dynamic = 'force-dynamic';
@@ -10,23 +12,78 @@ const SYSTEM_PROMPTS = {
 
 Your job is to:
 1. Classify the user's intent into one of these categories:
-   - viewStatistics: Request for metrics or numbers (occupancy, staff count, equipment status)
-   - searchEntity: User is searching for a specific patient, doctor, or staff member
-   - listEntity: User wants a list of entities (all doctors, all nurses, all patients)
-   - generateReport: User wants a report (weekly, daily, monthly summaries)
-   - generateAnalytics: User wants analysis or trends
-   - viewSummary: User wants a summary of something
+	- viewStatistics:
+	  Administrator wants metrics or numbers such as appointments,
+	  patient counts, staffing levels, or operational KPIs.
+	
+  - viewAppointments:
+    Administrator wants to see appointment statistics for a doctor.
+
+	- searchEntity:
+	  Administrator wants to search for a specific patient, doctor,
+	  nurse, or staff member.
+
+  - searchPatient:
+    Administrator wants to locate a patient or view basic operational information about a patient.  
+	
+	- listEntity:
+	  Administrator wants a list of entities such as all doctors,
+	  nurses, patients, or appointments.
+	
+	- generateReport:
+	  Administrator wants a daily, weekly, or monthly operational report.
+	
+	- generateAnalytics:
+	  Administrator wants trends, insights, comparisons, or analysis of hospital data.
+	
+	- viewSummary:
+	  Administrator wants a concise summary of operational information.
+	
+	- showPendingReviews:
+	  Administrator wants to see appointments or cases awaiting review or action.
+	
+	- showEmergencyCases:
+	  Administrator wants to view active emergency cases requiring attention.
+	
+	- showDepartmentMetrics:
+	  Administrator wants metrics or performance information for one or more departments.
+	  
+  Do not invent new intents.
+	Only return one of the intents listed above.
+
+  For appointment requests:
+
+  - Set:
+    "scope": "doctor"
+
+  - Extract the doctor's name into:
+    "doctorName"
+	
+  If the user does not specify a date or period,
+  set:
+
+  "timeRange": "upcoming"
+
+	If the request does not match any intent, return:
+	{
+	  "intent": "unknown",
+	  "type": "unknown",
+	  "parameters": {},
+	  "summary": "Unable to determine user request."
+	}
 
 2. Extract parameters relevant to the intent
 
 Return ONLY valid JSON:
 {
-  "intent": "viewStatistics" | "searchEntity" | "listEntity" | "generateReport" | "generateAnalytics" | "viewSummary",
-  "type": "statistics" | "search" | "list" | "report" | "analytics" | "summary",
+  "intent": "viewStatistics" | "viewAppointments" | "searchEntity" | "searchPatient" | "listEntity" | "generateReport" | "generateAnalytics" | "viewSummary" | "showPendingReviews" |"showEmergencyCases" | "showDepartmentMetrics" | "unknown",
+  "type": "statistics" | "search" | "list" | "report" | "analytics" | "summary" | "alerts" | "unknown",
   "parameters": {
-    "query": string,
+    "query": string | null,
     "entityType": "patient" | "doctor" | "staff" | "appointment" | null,
-    "timeRange": "today" | "week" | "month" | null,
+    "timeRange": "today" | "week" | "month" | "upcoming" | null,
+    "doctorName": string | null,
+    "scope": "doctor" | null,
     "filters": object
   },
   "summary": "Brief explanation of what the user is asking for"
@@ -36,24 +93,78 @@ Return ONLY valid JSON:
 
 Your job is to:
 1. Classify the user's intent into one of these categories:
-   - viewMyAppointments: Doctor wants to see their appointments
-   - viewMySchedule: Doctor wants to see their schedule
-   - viewAssignedPatients: Doctor wants to see their assigned patients
-   - summarizePatientHistory: Doctor wants medical summary of a patient
-   - draftConsultationNotes: Doctor wants to draft consultation notes
-   - draftReferral: Doctor wants to draft a referral
-   - draftFollowupNotes: Doctor wants to draft follow-up notes
+	- viewAppointments:
+	  Doctor wants to see their appointments for today, this week,
+	  or a specific date range.
+	
+	- viewMySchedule:
+	  Doctor wants to view their work schedule or calendar.
+	
+	- viewAssignedPatients:
+	  Doctor wants to see patients currently assigned to them.
+
+  - searchPatient:
+    Doctor wants to search for a patient under their care.  
+	
+	- summarizePatientHistory:
+	  Doctor wants an AI-generated summary of a patient's medical history
+	  using available records.
+	
+	- showPatientVitals:
+	  Doctor wants to view recent patient vital signs and trends.
+	
+	- showPrescriptions:
+	  Doctor wants to view a patient's current or previous prescriptions.
+	
+	- draftConsultationNotes:
+	  Doctor wants AI assistance drafting consultation notes after a consultation.
+	
+	- draftReferral:
+	  Doctor wants AI assistance drafting a referral to another clinician
+	  or department.
+	
+	- draftFollowupNotes:
+	  Doctor wants AI assistance drafting follow-up notes or instructions.
+	  
+  Do not invent new intents.
+	Only return one of the intents listed above.
+
+  For appointment requests:
+
+  - If the doctor asks for their own appointments,
+    set:
+    "scope": "mine"
+
+  - If a doctor asks for another doctor's appointments,
+    set:
+    "scope": "doctor"
+
+	- If the doctor does not specify a date or period,
+    set:
+
+    "dateRange": "upcoming"
+
+	If the request does not match any intent, return:
+	{
+	  "intent": "unknown",
+	  "type": "unknown",
+	  "parameters": {},
+	  "summary": "Unable to determine user request."
+	}
+   
 
 2. Extract parameters relevant to the intent
 
 Return ONLY valid JSON:
 {
-  "intent": "viewMyAppointments" | "viewMySchedule" | "viewAssignedPatients" | "summarizePatientHistory" | "draftConsultationNotes" | "draftReferral" | "draftFollowupNotes",
-  "type": "schedule" | "patient" | "draft" | "summary",
+  "intent": "viewAppointments" | "viewMySchedule" | "viewAssignedPatients" | "searchPatient" | "summarizePatientHistory" | "showPatientVitals" | "showPrescriptions" | "draftConsultationNotes" | "draftReferral" | "draftFollowupNotes" | "unknown" ,
+  "type": "schedule" | "patient" | "draft" | "summary" | "vitals" | "prescription" | "unknown",
   "parameters": {
     "patientName": string | null,
     "patientID": string | null,
-    "dateRange": "today" | "week" | "month" | null,
+    "scope": "mine" | "doctor" | null,
+    "doctorName": string | null,
+    "dateRange": "today" | "week" | "month" | "upcoming" | null,
     "documentType": "consultation" | "referral" | "followup" | null
   },
   "summary": "Brief explanation of what the doctor is asking for"
@@ -63,22 +174,59 @@ Return ONLY valid JSON:
 
 Your job is to:
 1. Classify the user's intent into one of these categories:
-   - showWaitingPatients: Nurse wants to see waiting patients
-   - showTodaysQueue: Nurse wants to see today's patient queue
-   - searchPatient: Nurse is looking for a specific patient
-   - bookAppointment: Nurse wants to book an appointment
-   - rescheduleAppointment: Nurse wants to reschedule an appointment
-   - cancelAppointment: Nurse wants to cancel an appointment
-   - checkInPatient: Nurse is checking in a patient
-   - recordVitals: Nurse is recording patient vitals
-   - assistVitalsWorkflow: Nurse needs help with vitals workflow
+	- showWaitingPatients:
+	  Nurse wants to see patients currently waiting to be attended to.
+	
+	- showTodaysQueue:
+	  Nurse wants to view today's patient care queue or assignments.
+	
+	- searchPatient:
+	  Nurse wants to locate a specific patient.
+	
+	- bookAppointment:
+	  Nurse wants to create a new appointment for a patient.
+	
+	- rescheduleAppointment:
+	  Nurse wants to change the date or time of an appointment.
+	
+	- cancelAppointment:
+	  Nurse wants to cancel an appointment.
+	
+	- checkInPatient:
+	  Nurse wants to check in a patient who has arrived for an appointment.
+	
+	- recordVitals:
+	  Nurse wants to record or update a patient's vital signs.
+	
+	- assistVitalsWorkflow:
+	  Nurse wants guidance or assistance with the vitals recording workflow.
+	
+	- generateHandoverSummary:
+	  Nurse wants an AI-generated summary for shift handover.
+	
+	- showMedicationSchedule:
+	  Nurse wants to view medication schedules or administration tasks.
+	
+	- showEmergencyPatients:
+	  Nurse wants to view active emergency patients requiring care.
+	  
+  Do not invent new intents.
+	Only return one of the intents listed above.
+	
+	If the request does not match any intent, return:
+	{
+	  "intent": "unknown",
+	  "type": "unknown",
+	  "parameters": {},
+	  "summary": "Unable to determine user request."
+	}
 
 2. Extract parameters relevant to the intent
 
 Return ONLY valid JSON:
 {
-  "intent": "showWaitingPatients" | "showTodaysQueue" | "searchPatient" | "bookAppointment" | "rescheduleAppointment" | "cancelAppointment" | "checkInPatient" | "recordVitals" | "assistVitalsWorkflow",
-  "type": "queue" | "search" | "appointment" | "checkin" | "vitals",
+  "intent": "showWaitingPatients" | "showTodaysQueue" | "searchPatient" | "bookAppointment" | "rescheduleAppointment" | "cancelAppointment" | "checkInPatient" | "recordVitals" | "assistVitalsWorkflow" | "generateHandoverSummary" | "showMedicationSchedule" | "showEmergencyPatients" | "unknown",
+  "type": "queue" | "search" | "appointment" | "checkin" | "vitals" | "medication" | "handover" | "emergency" | "unknown",
   "parameters": {
     "patientName": string | null,
     "patientID": string | null,
@@ -93,28 +241,17 @@ Return ONLY valid JSON:
 
 export async function POST(req) {
     try {
-        const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-        const apiKey = process.env.AZURE_OPENAI_API_KEY;
-        const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
+        const session = await auth();
+        const userRole = session?.user?.role;
 
-        if (!apiKey || !endpoint) {
-            console.error("Missing Azure OpenAI Credentials");
-            return NextResponse.json(
-                { error: "Configuration Error" },
-                { status: 500 }
-            );
+        if (!userRole) {
+          return NextResponse.json(
+            { error: "Unable to determine user role." },
+            { status: 401 }
+          );
         }
-
-        const client = new AzureOpenAI({
-            endpoint,
-            apiKey,
-            apiVersion: "2024-05-01-preview",
-            deployment: deploymentName,
-        });
-        const session = await getServerSession();
-        const userRole = session?.user?.role || 'DOCTOR';
-        const { text, context } = await req.json();
-        const role = context || userRole;
+        const { text } = await req.json();
+        const role = userRole;
 
         /**
          * We want the AI to interpret relative dates like:
@@ -148,20 +285,64 @@ Current local date and time in Nigeria (Africa/Lagos) is: ${nigeriaNow}.`
             },
             {
                 role: "user",
-                content: `Extract from: "${text}"`
+                content: `
+					User message:
+					"${text}"
+					
+					Return only the JSON object.
+					`
             }
         ];
 
-        const result = await client.chat.completions.create({
+        const result =
+          await client.chat.completions.create({
             messages,
             model: "",
-            response_format: { type: "json_object" }
-        });
+            response_format: {
+              type: "json_object"
+            }
+          });
 
-        const aiResponse = JSON.parse(result.choices[0].message.content);
+        const aiResponse = JSON.parse(
+          result.choices[0].message.content
+        );
+
+// Development note:
+// When working under a 1 RPM Azure OpenAI quota,
+// temporarily replace the above classification call with
+// the below hardcoded aiResponse to test downstream features.
+
+//const aiResponse = {
+//  intent:
+//    "generateHandoverSummary",
+//  parameters: {
+//    patientName:
+//      "Fatima Yusuf"
+//  }
+//};
+
+        const allowed = ALLOWED_INTENTS[role] || [];
+    if (!allowed.includes(aiResponse.intent) && aiResponse.intent !== "unknown") {
+      return NextResponse.json(
+        { 
+          intent: "unknown",
+          type: "authorization",
+          parameters: {},
+          summary: `The ${role} role is not permitted to perform this request.`,
+          error: "You are not authorized to perform this action." },
+        { status: 403 }
+      );
+    }
+		
+		if (!aiResponse.type) {
+		  aiResponse.type = "unknown";
+		}
+		
+		if (!aiResponse.parameters) {
+		  aiResponse.parameters = {};
+		}
         return NextResponse.json({
             ...aiResponse,
-            context: role,
             timestamp: new Date().toISOString()
         });
 

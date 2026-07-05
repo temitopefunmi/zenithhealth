@@ -1,8 +1,10 @@
-# Zenith HealthTech – AI-Assisted Healthcare Appointment Platform
+# Zenith HealthTech – AI-Assisted Healthcare Operations Platform
 
 ## Overview
 
-Zenith HealthTech is a cloud-native healthcare appointment management platform built on Microsoft Azure.
+Zenith HealthTech is a cloud-native healthcare operations platform built on Microsoft Azure.
+
+The platform combines appointment management, AI-assisted clinical workflows, observability, and cloud-native infrastructure to explore how modern Azure services can be used to build intelligent healthcare applications.
 
 The project began as a simple Azure App Service deployment exercise and has gradually evolved into a real-world engineering project that combines cloud infrastructure, DevOps automation, security, observability, serverless computing, and AI-assisted healthcare workflows.
 
@@ -90,6 +92,14 @@ This approach keeps AI in an assistive role rather than allowing blind automatio
 * Request monitoring
 * Exception tracking
 * Dependency monitoring
+
+### Role-Aware AI Assistant
+
+* Azure OpenAI intent extraction
+* Role-based permissions
+* Shared intent execution
+* Natural language healthcare queries
+* Context-aware responses
 
 ---
 
@@ -210,6 +220,48 @@ Identity and Access Management
 * Application roles (ADMIN / DOCTOR / NURSE)
 * Role propagation into sessions
 * PowerShell provisioning automation
+
+### Phase 7
+
+Role-Based Healthcare Operations Platform
+
+* Doctor Dashboard
+* Nurse Dashboard
+* Administrator Dashboard
+* Azure SQL-backed operational data
+* Healthcare workflow modeling
+* Patient categorization (Outpatient / Inpatient / Emergency)
+* Role-aware routing
+* Foundation for role-based AI
+
+### Phase 8
+
+AI Healthcare Assistant
+
+Zenith Health Portal now includes a role-aware AI assistant powered by Azure OpenAI.
+
+Capabilities include:
+
+* Role-aware intent extraction
+* Intent authorization and permission enforcement
+* Natural language healthcare operations queries
+* AI-driven dashboard interactions
+* Shared intents with scoped responses
+* Context-aware appointment analytics
+
+Examples:
+
+Administrator:
+- Show Dr Amina Bello's appointments today
+- Show pending reviews
+
+Doctor:
+- Show my appointments this week
+- Show my assigned patients
+
+Nurse:
+- Show today's queue
+- Show waiting patients
 
 ---
 

@@ -452,7 +452,59 @@ async function seed() {
 
     const assignmentId =
       `NA-${String(i).padStart(6, "0")}`;
-    const status = randomItem(statuses);
+    const now = new Date();
+
+    const appointmentDay = new Date(date);
+    appointmentDay.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let allowedStatuses;
+
+    if (appointmentDay > today) {
+      // Future
+      allowedStatuses = [
+        "Scheduled",
+        "Scheduled",
+        "Scheduled",
+        "Pending",
+        "Cancelled"
+      ];
+    } else if (appointmentDay < today) {
+      // Past
+      allowedStatuses = [
+        "Completed",
+        "Completed",
+        "Completed",
+        "Pending",
+        "Cancelled"
+      ];
+    } else {
+      // Today
+      allowedStatuses = [
+        "Scheduled",
+        "Scheduled",
+        "Scheduled",
+        "Pending",
+        "Completed",
+        "Cancelled"
+      ];
+    }
+
+    const status = randomItem(allowedStatuses);
+
+    let medStatuses;
+
+    if (date > now) {
+      medStatuses = ["Scheduled"];
+    } else {
+      medStatuses = [
+        "Administered",
+        "Scheduled",
+        "Missed"
+      ];
+    }
 
     const patientCategory = randomItem([
       "Outpatient",
@@ -470,6 +522,8 @@ async function seed() {
     const isVerified =
     status === "Completed"
         ? true
+        : status === "Scheduled"
+        ? false
         : status === "Pending"
         ? false
         : Math.random() > 0.5;
@@ -493,6 +547,11 @@ async function seed() {
       "Twice Daily",
       "Three Times Daily"
     ]);
+
+    const prescriptionStatuses = 
+     date > now
+        ? ["Active"]
+        : ["Active", "Completed", "Cancelled"];
         
     const body = {
       patient: patient.fullName,
@@ -543,12 +602,8 @@ async function seed() {
             ]),
 
             instructions: "Take after meals",
-
-            status: randomItem([
-              "Active",
-              "Completed",
-              "Cancelled"
-            ])
+           
+            status: randomItem(prescriptionStatuses)
           },
 
           vitals: 
@@ -595,11 +650,7 @@ async function seed() {
                       "IM"
                     ]),
 
-                    status: randomItem([
-                      "Administered",
-                      "Scheduled",
-                      "Missed"
-                    ]),
+                    status: randomItem(medStatuses),
 
                     administeredBy: selectedNurse.email
                   },

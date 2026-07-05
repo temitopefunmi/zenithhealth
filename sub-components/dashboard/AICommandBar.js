@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Card, Form, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Card, Form, Button, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
 import { useSession } from 'next-auth/react';
 
 const ROLE_CONFIGS = {
@@ -22,7 +22,7 @@ const ROLE_CONFIGS = {
         title: 'Patient Care AI Assistant',
         description: 'Ask about your patients, appointments, and medical summaries',
         placeholder: 'e.g., "Show my appointments today" or "Summarize patient history for John"',
-        intents: ['viewMyAppointments', 'viewMySchedule', 'viewAssignedPatients', 'summarizePatientHistory', 'draftConsultationNotes', 'draftReferral', 'draftFollowupNotes'],
+        intents: ['viewAppointments', 'viewMySchedule', 'viewAssignedPatients', 'summarizePatientHistory', 'draftConsultationNotes', 'draftReferral', 'draftFollowupNotes'],
         examples: [
             'Show my appointments',
             'Who is my next patient?',
@@ -55,6 +55,7 @@ const AICommandBar = ({ onDraftCreated }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [responseType, setResponseType] = useState(null);
+    const [executionResult, setExecutionResult] = useState(null);
     const role = session?.user?.role;
     const roleConfig = role ? ROLE_CONFIGS[role] : null;
 
@@ -62,6 +63,7 @@ const AICommandBar = ({ onDraftCreated }) => {
         setInput('');
         setPreview(null);
         setError('');
+        setExecutionResult(null);
         setSuccess('');
         setLoading(false);
         setSaving(false);
@@ -76,6 +78,7 @@ const AICommandBar = ({ onDraftCreated }) => {
         setError('');
         setSuccess('');
         setPreview(null);
+        setExecutionResult(null);
         setResponseType(null);
 
         try {
@@ -96,6 +99,11 @@ const AICommandBar = ({ onDraftCreated }) => {
 
             setPreview(data);
             setResponseType(data.type || 'intent');
+
+            if (data.intent !== "unknown") {
+                await executeIntent(data);
+                setInput('');
+            }
             
             if (data.type === 'search' || data.type === 'list') {
                 setSuccess(`Found ${data.results?.length || 0} results.`);
@@ -108,8 +116,8 @@ const AICommandBar = ({ onDraftCreated }) => {
         }
     };
 
-    const confirmAction = async () => {
-        if (!preview) return;
+    const executeIntent = async (previewData) => {
+        if (!previewData) return;
 
 
         setSaving(true);
@@ -121,8 +129,8 @@ const AICommandBar = ({ onDraftCreated }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    intent: preview.intent,
-                    parameters: preview.parameters
+                    intent: previewData.intent,
+                    parameters: previewData.parameters
                 })
             });
 
@@ -132,9 +140,8 @@ const AICommandBar = ({ onDraftCreated }) => {
                 throw new Error(data?.error || 'Failed to execute action.');
             }
 
+            setExecutionResult(data);
             setSuccess('Action executed successfully.');
-            setInput('');
-            setPreview(null);
             onDraftCreated?.();
         } catch (err) {
             console.error('Execute Action Error:', err);
@@ -154,6 +161,286 @@ const AICommandBar = ({ onDraftCreated }) => {
         );
     }    
 
+    function renderExecutionResult() {
+    if (!executionResult) return null;
+
+    switch (executionResult.type) {
+        case "queue":
+        return (
+            <table className="table table-sm">
+            <thead>
+                <tr>
+                <th>Patient</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Category</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {executionResult.data.map((item, index) => (
+                <tr key={index}>
+                    <td>{item.patientName}</td>
+                    <td>{item.priority}</td>
+                    <td>{item.status}</td>
+                    <td>{item.patientCategory}</td>
+                </tr>
+                ))}
+            </tbody>
+            </table>
+        );
+
+        case "appointments":
+        return (
+            <table className="table table-sm">
+            <thead>
+                <tr>
+                <th>Patient</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Priority</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {executionResult.data.map((item, index) => (
+                <tr key={index}>
+                    <td>{item.patientName}</td>
+                    <td>
+                    {new Date(
+                        item.appointmentDate
+                    ).toLocaleString()}
+                    </td>
+                    <td>{item.appointmentType}</td>
+                    <td>{item.status}</td>
+                    <td>{item.priority}</td>
+                </tr>
+                ))}
+            </tbody>
+            </table>
+        );
+
+        case "statistics":
+        return (
+            <Row>
+            <Col md={3}>
+                <Card body>
+                <h4>
+                    {executionResult.data
+                    .appointmentsToday}
+                </h4>
+                <small>Today's Appointments</small>
+                </Card>
+            </Col>
+
+            <Col md={3}>
+                <Card body>
+                <h4>
+                    {executionResult.data
+                    .pendingReviews}
+                </h4>
+                <small>Pending Reviews</small>
+                </Card>
+            </Col>
+
+            <Col md={3}>
+                <Card body>
+                <h4>
+                    {executionResult.data
+                    .completedAppointments}
+                </h4>
+                <small>Completed</small>
+                </Card>
+            </Col>
+
+            <Col md={3}>
+                <Card body>
+                <h4>
+                    {executionResult.data
+                    .emergencyCases}
+                </h4>
+                <small>Emergency Cases</small>
+                </Card>
+            </Col>
+            </Row>
+        );
+
+        case "doctorAppointmentStats":
+            return (
+                <>
+                <div className="mb-3">
+                    <h6>
+                    {executionResult.data.doctorName}
+                    </h6>
+                </div>
+
+                <Row>
+                    <Col md={3}>
+                    <Card body>
+                        <h4>
+                        {executionResult.data.totalAppointments}
+                        </h4>
+                        <small>Total</small>
+                    </Card>
+                    </Col>
+
+                    <Col md={3}>
+                    <Card body>
+                        <h4>
+                        {executionResult.data.completed}
+                        </h4>
+                        <small>Completed</small>
+                    </Card>
+                    </Col>
+
+                    <Col md={3}>
+                    <Card body className="text-center shadow-sm">
+                        <h4>
+                        {executionResult.data.pending}
+                        </h4>
+                        <small>Pending</small>
+                    </Card>
+                    </Col>
+
+                    <Col md={3}>
+                    <Card body>
+                        <h4>
+                        {executionResult.data.scheduled}
+                        </h4>
+                        <small>Scheduled</small>
+                    </Card>
+                    </Col>
+                </Row>
+                </>
+            );
+
+            case "pendingReviews":
+                return (
+                    <table className="table table-sm">
+                    <thead>
+                        <tr>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Priority</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {executionResult.data.map(
+                        (item, index) => (
+                            <tr key={index}>
+                            <td>{item.patientName}</td>
+                            <td>{item.doctor}</td>
+                            <td>
+                                {new Date(
+                                item.appointmentDate
+                                ).toLocaleString()}
+                            </td>
+                            <td>{item.priority}</td>
+                            </tr>
+                        )
+                        )}
+                    </tbody>
+                    </table>
+                );
+
+                case "patients":
+                    return (
+                        <table className="table table-sm">
+                        <thead>
+                            <tr>
+                            <th>Patient ID</th>
+                            <th>Name</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {executionResult.data.map(
+                            (item, index) => (
+                                <tr key={index}>
+                                <td>{item.patientId}</td>
+                                <td>{item.patientName}</td>
+                                </tr>
+                            )
+                            )}
+                        </tbody>
+                        </table>
+                    );
+            case "patientSummary":
+            return (
+                <Card body className="shadow-sm">
+                <div className="mb-3">
+                    <strong>Patient</strong>
+                    <div>
+                    {executionResult.data.patientName}
+                    </div>
+                </div>
+
+                <div>
+                    <strong>AI Summary</strong>
+
+                    <div
+                    className="mt-2"
+                    style={{
+                        whiteSpace: "pre-wrap"
+                    }}
+                    >
+                    {executionResult.data.summary}
+                    </div>
+                </div>
+                </Card>
+            );      
+            
+            case "handoverSummary":
+                return (
+                    <Card body className="shadow-sm">
+                    <div className="mb-3">
+                        <strong>Patient</strong>
+                        <div>
+                        {executionResult.data.patientName}
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>Shift Handover</strong>
+
+                        <div
+                        className="mt-2"
+                        style={{
+                            whiteSpace: "pre-wrap"
+                        }}
+                        >
+                        {executionResult.data.summary}
+                        </div>
+                    </div>
+                    </Card>
+                );
+
+            case "message":
+                return (
+                    <Alert variant="info">
+                    {executionResult.message}
+                    </Alert>
+                );
+        default:
+        return (
+            <pre
+            className="bg-light p-3 rounded small mb-0"
+            style={{
+                maxHeight: "300px",
+                overflowY: "auto",
+                overflowX: "auto",
+                whiteSpace: "pre-wrap",
+                wordWrap: "break-word"
+            }}
+            >
+            {JSON.stringify(executionResult, null, 2)}
+            </pre>
+        );
+    }
+    }
     return (
         <Card className="mb-4 border-0 shadow-sm">
             <Card.Body className="p-4">
@@ -213,10 +500,10 @@ const AICommandBar = ({ onDraftCreated }) => {
                                     aria-hidden="true"
                                     className="me-2"
                                 />
-                                Processing...
+                                Thinking...
                             </>
                         ) : (
-                            'Analyze Request'
+                            'Ask AI'
                         )}
                     </Button>
 
@@ -248,9 +535,26 @@ const AICommandBar = ({ onDraftCreated }) => {
                             <div className="mb-3">
                                 <div className="small text-muted">Extracted Parameters</div>
                                 <div className="small">
-                                    {Object.entries(preview.parameters).map(([key, value]) => (
-                                        <div key={key}><strong>{key}:</strong> {String(value)}</div>
-                                    ))}
+                                    {Object.entries(preview.parameters)
+                                        .filter(([_, value]) => {
+                                            if (value === null) return false;
+                                            if (
+                                            typeof value === "object" &&
+                                            Object.keys(value).length === 0
+                                            ){
+                                            return false;
+                                            }
+
+                                            return true;
+                                        })
+                                        .map(([key, value]) => (
+                                            <div key={key}>
+                                                <strong>{key}:</strong>{" "} 
+                                                {typeof value === "object" 
+                                                  ? JSON.stringify(value)
+                                                  : String(value)}
+                                            </div>
+                                        ))}
                                 </div>                          
 
                                
@@ -276,8 +580,17 @@ const AICommandBar = ({ onDraftCreated }) => {
                                         </div>
                                     </div>
                                 )}
+                        {executionResult && (
+                                <div className="mb-3">
+                                    <div className="small text-muted mb-2">
+                                        Execution Result
+                                    </div>
 
+                                    {renderExecutionResult()}
+                                </div>
+                            )}
                         {preview.summary && (
+                            
                             <div className="mb-3">
                                 <div className="small text-muted">Summary</div>
                                 <div className="small">{preview.summary}</div>
@@ -285,34 +598,14 @@ const AICommandBar = ({ onDraftCreated }) => {
                         )}
 
                         <div className="d-flex gap-2">
-                            <Button
-                                size="sm"
-                                variant="success"
-                                onClick={confirmAction}
-                                disabled={saving || loading}
-                            >
-                                {saving ? (
-                                    <>
-                                        <Spinner
-                                            as="span"
-                                            animation="border"
-                                            size="sm"
-                                            role="status"
-                                            aria-hidden="true"
-                                            className="me-2"
-                                        />
-                                        Executing...
-                                    </>
-                                ) : (
-                                    'Execute Action'
-                                )}
-                            </Button>
+                            
 
                             <Button
                                 size="sm"
                                 variant="outline-secondary"
                                 onClick={() => {
                                     setPreview(null);
+                                    setExecutionResult(null);
                                     setError('');
                                     setSuccess('');
                                 }}

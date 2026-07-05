@@ -1,57 +1,33 @@
-'use client'
-import { dynamic } from 'next/dynamic';
-import { useSession } from "next-auth/react";
+import { NextResponse } from "next/server";
+import { executeIntent } from "@/lib/ai/intent-executor";
+import { ALLOWED_INTENTS } from "@/lib/ai/intent-permissions";
+import { auth } from "@/lib/auth";
 
-const AdminDashboard = dynamic(() => import('sub-components/dashboard/AdminDashboard'), {
-    loading: () => <div className="text-center mt-5">Loading dashboard...</div>,
-    ssr: false
-});
-
-const DoctorDashboard = dynamic(() => import('sub-components/dashboard/DoctorDashboard'), {
-    loading: () => <div className="text-center mt-5">Loading dashboard...</div>,
-    ssr: false
-});
-
-const NurseDashboard = dynamic(() => import('sub-components/dashboard/NurseDashboard'), {
-    loading: () => <div className="text-center mt-5">Loading dashboard...</div>,
-    ssr: false
-});
-
-const Home = () => {
-    const { data: session, status } = useSession();
-
-    if (status === "loading") {
-        return (
-            <div className="text-center mt-5">
-                Loading dashboard...
-            </div>
-        );
-    }
-
+export async function POST(req) {
+  try {
+    const session = await auth();
+    const body = await req.json();
     const role = session?.user?.role;
 
-    if (!role) {
-        return (
-            <div className="text-center mt-5">
-                <p>Unable to determine user role. Please log in again.</p>
-            </div>
-        );
+    if (!role || !ALLOWED_INTENTS[role]?.includes(body.intent)) {
+      return NextResponse.json(
+        { error: "You are not authorized to perform this action." },
+        { status: 403 }
+      );
     }
 
-    switch (role) {
-        case 'ADMIN':
-            return <AdminDashboard />;
-        case 'DOCTOR':
-            return <DoctorDashboard />;
-        case 'NURSE':
-            return <NurseDashboard />;
-        default:
-            return (
-                <div className="text-center mt-5">
-                    <p>Unknown role: {role}. Please contact support.</p>
-                </div>
-            );
-    }
+    const result = await executeIntent({
+      ...body,
+      session,
+    });
+
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error(err);
+
+    return NextResponse.json(
+      { error: "Failed to execute intent" },
+      { status: 500 }
+    );
+  }
 }
-
-export default Home;
