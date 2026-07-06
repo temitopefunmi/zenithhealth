@@ -51,9 +51,18 @@ resource "azurerm_key_vault" "kv" {
   }
 }
 
-# 4. Generate Random Password
+# 4. Generate Random Password and next auth secret
 resource "random_password" "sql_admin_password" {
   length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "random_password" "nextauth_secret" {
+  length           = 32
   special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
   lifecycle {
@@ -65,6 +74,15 @@ resource "random_password" "sql_admin_password" {
 resource "azurerm_key_vault_secret" "sql_password_secret" {
   name         = "sql-admin-password"
   value        = random_password.sql_admin_password.result
+  key_vault_id = azurerm_key_vault.kv.id
+  lifecycle {
+    ignore_changes = [ value ]
+  }
+}
+
+resource "azurerm_key_vault_secret" "nextauth_secret" {
+  name         = "nextauth-secret"
+  value        = random_password.nextauth_secret.result
   key_vault_id = azurerm_key_vault.kv.id
   lifecycle {
     ignore_changes = [ value ]
@@ -148,7 +166,8 @@ resource "azurerm_key_vault_secret" "openai_key" {
 
 # 13. Web App (Modified to include AI settings)
 resource "azurerm_linux_web_app" "web_app" {
-  depends_on          = [ azurerm_application_insights.app_insights ]
+  depends_on          = [ azurerm_application_insights.app_insights, 
+                          azurerm_key_vault_access_policy.shared_identity_access]
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -190,6 +209,9 @@ resource "azurerm_linux_web_app" "web_app" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
     # Scheduler Function endpoint
     "SCHEDULER_FUNCTION_BASE_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
+    # NextAuth settings
+    "NEXTAUTH_URL" = "https://${azurerm_linux_web_app.web_app.default_hostname}"
+    "NEXTAUTH_SECRET" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
 
   }
 }
