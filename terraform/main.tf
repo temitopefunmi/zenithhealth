@@ -214,6 +214,12 @@ resource "azurerm_linux_web_app" "web_app" {
     "NEXTAUTH_SECRET" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
 
   }
+  lifecycle {
+    ignore_changes = [
+      app_settings["AZURE_AD_CLIENT_ID"],
+      app_settings["AZURE_AD_CLIENT_SECRET"],   
+      app_settings["AZURE_AD_TENANT_ID"] ]
+  }
 }
 
 # 14. Shared User Assigned Identity used by application workloads
