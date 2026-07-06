@@ -210,7 +210,7 @@ resource "azurerm_linux_web_app" "web_app" {
     # Scheduler Function endpoint
     "SCHEDULER_FUNCTION_BASE_URL" = "https://${azurerm_linux_function_app.scheduler_function.default_hostname}"
     # NextAuth settings
-    "NEXTAUTH_URL" = "https://${azurerm_linux_web_app.web_app.default_hostname}"
+    "NEXTAUTH_URL" = "https://${var.app_name}.azurewebsites.net"
     "NEXTAUTH_SECRET" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
 
   }
