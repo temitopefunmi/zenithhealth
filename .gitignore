@@ -37,5 +37,7 @@ azure-setup-output.txt
 
 # terraform
 terraform.tfvars
+.terraform*
+
 
 /app/generated/prisma

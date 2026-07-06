@@ -252,6 +252,7 @@ export async function POST(req) {
         }
         const { text } = await req.json();
         const role = userRole;
+        const client = getAzureOpenAIClient();
 
         /**
          * We want the AI to interpret relative dates like:
