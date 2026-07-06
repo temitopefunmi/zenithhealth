@@ -49,6 +49,15 @@ resource "azurerm_key_vault" "kv" {
       "Get", "List", "Set", "Delete", "Purge", "Recover"
     ]
   }
+  # Shared access policy for web app and functions
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = azurerm_user_assigned_identity.app_identity.principal_id
+
+    secret_permissions = [
+      "Get", "List"
+    ]
+  }
 }
 
 # 4. Generate Random Password and next auth secret
@@ -166,8 +175,7 @@ resource "azurerm_key_vault_secret" "openai_key" {
 
 # 13. Web App (Modified to include AI settings)
 resource "azurerm_linux_web_app" "web_app" {
-  depends_on          = [ azurerm_application_insights.app_insights, 
-                          azurerm_key_vault_access_policy.shared_identity_access]
+  depends_on          = [ azurerm_application_insights.app_insights ]
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -222,20 +230,6 @@ resource "azurerm_linux_web_app" "web_app" {
   }
 }
 
-# 14. Shared User Assigned Identity used by application workloads
-
-resource "azurerm_key_vault_access_policy" "shared_identity_access" {
-  key_vault_id = azurerm_key_vault.kv.id
-
-  tenant_id = data.azurerm_client_config.current.tenant_id
-
-  object_id = azurerm_user_assigned_identity.app_identity.principal_id
-
-  secret_permissions = [
-    "Get",
-    "List"
-  ]
-}
 
 
 # 16. The Workspace where logs are stored
